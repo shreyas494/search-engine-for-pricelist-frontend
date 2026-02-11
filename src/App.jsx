@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import AdminImport from "./AdminImport";
 
 function App() {
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -9,6 +10,7 @@ function App() {
   const [brands, setBrands] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [fields, setFields] = useState([]); // dynamically detected fields
+  const [view, setView] = useState("search"); // 'search' or 'admin'
 
   // ✅ Debounce Search Term
   useEffect(() => {
@@ -81,94 +83,108 @@ function App() {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      <h1 className="text-2xl font-bold mb-6">Tyre Inventory</h1>
-
-      {/* 🔎 Search + Brand Filter */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
-        <div className="relative w-full md:w-1/2">
-          <input
-            type="text"
-            placeholder="Search by model..."
-            className="w-full p-2 border rounded-lg"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          {suggestions.length > 0 && (
-            <ul className="absolute bg-white border w-full mt-1 rounded-lg shadow-lg z-10">
-              {suggestions.map((tyre) => (
-                <li
-                  key={tyre._id}
-                  className="p-2 hover:bg-gray-100 cursor-pointer"
-                  onClick={() => setSearchTerm(tyre.model)}
-                >
-                  {tyre.model}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <select
-          className="p-2 border rounded-lg md:w-1/4"
-          value={brandFilter}
-          onChange={(e) => setBrandFilter(e.target.value)}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Tyre Inventory</h1>
+        <button
+          onClick={() => setView(view === "search" ? "admin" : "search")}
+          className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700"
         >
-          <option value="">All Brands</option>
-          {brands.map((brand) => (
-            <option key={brand} value={brand}>
-              {brand}
-            </option>
-          ))}
-        </select>
+          {view === "search" ? "Go to Admin Upload" : "Back to Search"}
+        </button>
       </div>
 
-      {/* 📋 Tyre Table */}
-      <div className="overflow-x-auto bg-white shadow rounded-lg">
-        <table className="min-w-full border border-gray-200">
-          <thead className="bg-gray-100">
-            <tr>
-              {fields.map((field) => (
-                <th key={field} className="border p-2 text-left">
-                  {field.charAt(0).toUpperCase() + field.slice(1)}
-                </th>
-              ))}
-              {fields.length > 0 && (
-                <th className="border p-2 text-left">Copy</th>
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {tyres.length > 0 ? (
-              tyres.map((tyre) => (
-                <tr key={tyre._id} className="hover:bg-gray-50">
-                  {fields.map((field) => (
-                    <td key={field} className="border p-2">
-                      {tyre[field] || "-"}
-                    </td>
-                  ))}
-                  <td className="border p-2">
-                    <button
-                      className="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-                      onClick={() => copyTyreDetails(tyre)}
+      {view === "admin" ? (
+        <AdminImport />
+      ) : (
+        <>
+          {/* 🔎 Search + Brand Filter */}
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className="relative w-full md:w-1/2">
+              <input
+                type="text"
+                placeholder="Search by model..."
+                className="w-full p-2 border rounded-lg"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              {suggestions.length > 0 && (
+                <ul className="absolute bg-white border w-full mt-1 rounded-lg shadow-lg z-10">
+                  {suggestions.map((tyre) => (
+                    <li
+                      key={tyre._id}
+                      className="p-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => setSearchTerm(tyre.model)}
                     >
-                      Copy
-                    </button>
-                  </td>
+                      {tyre.model}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <select
+              className="p-2 border rounded-lg md:w-1/4"
+              value={brandFilter}
+              onChange={(e) => setBrandFilter(e.target.value)}
+            >
+              <option value="">All Brands</option>
+              {brands.map((brand) => (
+                <option key={brand} value={brand}>
+                  {brand}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* 📋 Tyre Table */}
+          <div className="overflow-x-auto bg-white shadow rounded-lg">
+            <table className="min-w-full border border-gray-200">
+              <thead className="bg-gray-100">
+                <tr>
+                  {fields.map((field) => (
+                    <th key={field} className="border p-2 text-left">
+                      {field.charAt(0).toUpperCase() + field.slice(1)}
+                    </th>
+                  ))}
+                  {fields.length > 0 && (
+                    <th className="border p-2 text-left">Copy</th>
+                  )}
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td
-                  colSpan={fields.length + 1 || 1}
-                  className="border p-2 text-center text-gray-500"
-                >
-                  No products found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody>
+                {tyres.length > 0 ? (
+                  tyres.map((tyre) => (
+                    <tr key={tyre._id} className="hover:bg-gray-50">
+                      {fields.map((field) => (
+                        <td key={field} className="border p-2">
+                          {tyre[field] || "-"}
+                        </td>
+                      ))}
+                      <td className="border p-2">
+                        <button
+                          className="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                          onClick={() => copyTyreDetails(tyre)}
+                        >
+                          Copy
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={fields.length + 1 || 1}
+                      className="border p-2 text-center text-gray-500"
+                    >
+                      No products found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </div>
   );
 }
