@@ -118,85 +118,91 @@ const AdminImport = () => {
                     onChange={handleFileChange}
                     className="mb-4 text-lg"
                 />
-                <button
-                    onClick={handleParse}
-                    disabled={!file || loading}
-                    className={`px-6 py-2 rounded-lg text-white font-semibold transition ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
-                        }`}
-                >
-                    {loading ? "Scanning with AI..." : "Scan & Extract Data"}
-                </button>
-                {status && <p className="mt-4 text-gray-600">{status}</p>}
+                <div className="flex gap-4">
+                    <button
+                        onClick={handleParse}
+                        disabled={!file || loading}
+                        className={`px-6 py-2 rounded-lg text-white font-semibold transition ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+                            }`}
+                    >
+                        {loading ? "Scanning with AI..." : "Scan & Extract Data"}
+                    </button>
+                    <button
+                        onClick={() => { setParsedData([{ brand: "", model: "", type: "", dp: null, mrp: null }]); setStatus("Manual entry started."); }}
+                        className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-semibold"
+                    >
+                        Start Manual Entry
+                    </button>
+                </div>
+                {status && <p className="mt-4 text-gray-600 text-center max-w-2xl">{status}</p>}
             </div>
 
-            {/* Review Section */}
-            {parsedData.length > 0 && (
-                <div className="animate-fade-in">
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-semibold">Review Extracted Data ({parsedData.length})</h2>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={handleAddRow}
-                                className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 font-semibold"
-                            >
-                                + Add Manually
-                            </button>
-                            <button
-                                onClick={handleClearAll}
-                                className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 font-semibold"
-                            >
-                                Clear All
-                            </button>
-                            <button
-                                onClick={handleImport}
-                                disabled={importing}
-                                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold shadow-lg"
-                            >
-                                {importing ? "Importing..." : "Approve & Save to Database"}
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="overflow-x-auto shadow-md rounded-lg border border-gray-200">
-                        <table className="w-full text-sm text-left text-gray-500">
-                            <thead className="text-xs text-gray-700 uppercase bg-gray-100">
-                                <tr>
-                                    <th className="px-4 py-3">Brand</th>
-                                    <th className="px-4 py-3">Model</th>
-                                    <th className="px-4 py-3">Type</th>
-                                    <th className="px-4 py-3">Dealer Price</th>
-                                    <th className="px-4 py-3">MRP</th>
-                                    <th className="px-4 py-3">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {parsedData.map((item, index) => (
-                                    <tr key={index} className="bg-white border-b hover:bg-gray-50">
-                                        {["brand", "model", "type", "dp", "mrp"].map((field) => (
-                                            <td key={field} className="px-2 py-2">
-                                                <input
-                                                    type={field === "dp" || field === "mrp" ? "number" : "text"}
-                                                    value={item[field] || ""}
-                                                    onChange={(e) => handleDataChange(index, field, e.target.value)}
-                                                    className="w-full p-1 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                                                />
-                                            </td>
-                                        ))}
-                                        <td className="px-4 py-2 text-center">
-                                            <button
-                                                onClick={() => handleDeleteRow(index)}
-                                                className="text-red-500 hover:text-red-700 font-bold"
-                                            >
-                                                ✕
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+            {/* Review Section - Always accessible if there's an attempt or data */}
+            <div className="animate-fade-in">
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold">Review Extracted Data ({parsedData.length})</h2>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={handleAddRow}
+                            className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 font-semibold"
+                        >
+                            + Add Manually
+                        </button>
+                        <button
+                            onClick={handleClearAll}
+                            className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 font-semibold"
+                        >
+                            Clear All
+                        </button>
+                        <button
+                            onClick={handleImport}
+                            disabled={importing}
+                            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold shadow-lg"
+                        >
+                            {importing ? "Importing..." : "Approve & Save to Database"}
+                        </button>
                     </div>
                 </div>
-            )}
+
+                <div className="overflow-x-auto shadow-md rounded-lg border border-gray-200">
+                    <table className="w-full text-sm text-left text-gray-500">
+                        <thead className="text-xs text-gray-700 uppercase bg-gray-100">
+                            <tr>
+                                <th className="px-4 py-3">Brand</th>
+                                <th className="px-4 py-3">Model</th>
+                                <th className="px-4 py-3">Type</th>
+                                <th className="px-4 py-3">Dealer Price</th>
+                                <th className="px-4 py-3">MRP</th>
+                                <th className="px-4 py-3">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {parsedData.map((item, index) => (
+                                <tr key={index} className="bg-white border-b hover:bg-gray-50">
+                                    {["brand", "model", "type", "dp", "mrp"].map((field) => (
+                                        <td key={field} className="px-2 py-2">
+                                            <input
+                                                type={field === "dp" || field === "mrp" ? "number" : "text"}
+                                                value={item[field] || ""}
+                                                onChange={(e) => handleDataChange(index, field, e.target.value)}
+                                                className="w-full p-1 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                            />
+                                        </td>
+                                    ))}
+                                    <td className="px-4 py-2 text-center">
+                                        <button
+                                            onClick={() => handleDeleteRow(index)}
+                                            className="text-red-500 hover:text-red-700 font-bold"
+                                        >
+                                            ✕
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     );
 };
