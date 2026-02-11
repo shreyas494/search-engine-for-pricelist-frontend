@@ -2,17 +2,28 @@
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
-import path from "path";
-import { fileURLToPath } from "url";
+import dotenv from "dotenv";
+import compression from "compression";
+import uploadRoutes from "./routes/uploadRoutes.js";
+
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ✅ Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || "*", // Allow all for now, restrict in prod
+  methods: ["GET", "POST"],
+  credentials: true
+}));
+app.use(compression());
 app.use(express.json());
 
 // ✅ MongoDB Connection
+if (process.env.MONGO_URI && (process.env.MONGO_URI.includes("<") || process.env.MONGO_URI.includes(">"))) {
+  console.error("🚨 CONFIGURATION ERROR: Your MONGO_URI contains '<' or '>'. Did you forget to remove the '<db_password>' placeholder and type your actual password?");
+}
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ Connected to MongoDB"))
@@ -21,14 +32,17 @@ mongoose
 // ✅ Tyre Schema
 const TyreSchema = new mongoose.Schema(
   {
-    brand: String,
-    model: String,
+    brand: { type: String, index: true },
+    model: { type: String, index: true }, // Simple index for better performance
     type: String,
     dp: Number,
     mrp: Number,
   },
   { collection: "tyres" }
 );
+
+// Compound index for searching by brand + model
+TyreSchema.index({ brand: 1, model: 1 });
 
 const Tyre = mongoose.model("Tyre", TyreSchema);
 
@@ -58,14 +72,12 @@ app.get("/api/brands", async (req, res) => {
   }
 });
 
-// ✅ Serve frontend build
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// ✅ Admin Upload Routes
+app.use("/api/admin", uploadRoutes);
 
-app.use(express.static(path.join(__dirname, "../frontend/dist")));
-
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
+// ✅ Root Endpoint
+app.get("/", (req, res) => {
+  res.send("API is running...");
 });
 
 // ✅ Start server
