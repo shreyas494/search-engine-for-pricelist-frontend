@@ -33,7 +33,10 @@ const AdminImport = () => {
                 body: formData,
             });
 
-            if (!res.ok) throw new Error("Failed to parse PDF");
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || "Failed to parse PDF");
+            }
 
             const data = await res.json();
             if (Array.isArray(data)) {
@@ -44,10 +47,18 @@ const AdminImport = () => {
             }
         } catch (error) {
             console.error(error);
-            setStatus("Error parsing PDF. Make sure the backend is running.");
+            setStatus(`Error: ${error.message}`);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleAddRow = () => {
+        setParsedData([
+            { brand: "", model: "", type: "", dp: null, mrp: null },
+            ...parsedData,
+        ]);
+        setStatus("New row added. Fill in the details manually.");
     };
 
     const handleDataChange = (index, field, value) => {
@@ -116,13 +127,21 @@ const AdminImport = () => {
                 <div className="animate-fade-in">
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-xl font-semibold">Review Extracted Data ({parsedData.length})</h2>
-                        <button
-                            onClick={handleImport}
-                            disabled={importing}
-                            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold shadow-lg"
-                        >
-                            {importing ? "Importing..." : "Approve & Save to Database"}
-                        </button>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={handleAddRow}
+                                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-semibold"
+                            >
+                                + Add Manually
+                            </button>
+                            <button
+                                onClick={handleImport}
+                                disabled={importing}
+                                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold shadow-lg"
+                            >
+                                {importing ? "Importing..." : "Approve & Save to Database"}
+                            </button>
+                        </div>
                     </div>
 
                     <div className="overflow-x-auto shadow-md rounded-lg border border-gray-200">
