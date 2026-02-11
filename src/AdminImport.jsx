@@ -5,6 +5,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const AdminImport = () => {
     const [file, setFile] = useState(null);
     const [parsedData, setParsedData] = useState([]);
+    const [rawText, setRawText] = useState("");
     const [loading, setLoading] = useState(false);
     const [importing, setImporting] = useState(false);
     const [status, setStatus] = useState("");
@@ -38,16 +39,19 @@ const AdminImport = () => {
                 throw new Error(errorData.error || "Failed to parse PDF");
             }
 
-            const data = await res.json();
-            if (Array.isArray(data)) {
-                setParsedData(data);
-                setStatus(`Successfully extracted ${data.length} items. Please review below.`);
+            const { extractedData, rawText: text } = await res.json();
+            setRawText(text);
+
+            if (Array.isArray(extractedData) && extractedData.length > 0) {
+                setParsedData(extractedData);
+                setStatus(`Extraction complete: Found ${extractedData.length} items. Please review and edit in the grid below.`);
             } else {
-                setStatus("AI returned unexpected format. Try again.");
+                setParsedData([]);
+                setStatus("AI was throttled. I've loaded the raw text below for you. Please use '+ Add Manually' to fill the list.");
             }
         } catch (error) {
             console.error(error);
-            setStatus(`Error: ${error.message}`);
+            setStatus(`Note: ${error.message}. You can still add data manually below.`);
         } finally {
             setLoading(false);
         }
@@ -167,6 +171,20 @@ const AdminImport = () => {
                 </div>
                 {status && <p className="mt-4 text-sm text-gray-500 bg-gray-100 px-4 py-2 rounded-full">{status}</p>}
             </div>
+
+            {/* Raw Text Reference (Only if AI fails or user needs it) */}
+            {rawText && (
+                <div className="mb-6 border border-amber-200 bg-amber-50 rounded-lg p-4">
+                    <details className="cursor-pointer">
+                        <summary className="font-bold text-amber-800 flex items-center gap-2">
+                            📖 See PDF Text Reference (Use this to copy names/prices)
+                        </summary>
+                        <div className="mt-3 p-3 bg-white border border-amber-200 rounded max-h-40 overflow-auto font-mono text-xs text-gray-700 whitespace-pre-wrap">
+                            {rawText}
+                        </div>
+                    </details>
+                </div>
+            )}
 
             {/* Review Section - Spreadsheet UI */}
             <div className="mt-8 bg-gray-50 border border-gray-200 rounded-xl overflow-hidden shadow-xl animate-fade-in">
