@@ -72,6 +72,13 @@ const AdminImport = () => {
         setParsedData(newData);
     };
 
+    const handleClearAll = () => {
+        if (window.confirm("Are you sure you want to clear all extracted data?")) {
+            setParsedData([]);
+            setStatus("");
+        }
+    };
+
     const handleImport = async () => {
         if (parsedData.length === 0) return;
 
@@ -130,9 +137,15 @@ const AdminImport = () => {
                         <div className="flex gap-2">
                             <button
                                 onClick={handleAddRow}
-                                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-semibold"
+                                className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 font-semibold"
                             >
                                 + Add Manually
+                            </button>
+                            <button
+                                onClick={handleClearAll}
+                                className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 font-semibold"
+                            >
+                                Clear All
                             </button>
                             <button
                                 onClick={handleImport}
