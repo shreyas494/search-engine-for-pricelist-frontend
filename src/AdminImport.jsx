@@ -10,6 +10,7 @@ const AdminImport = () => {
     const [status, setStatus] = useState("");
 
     const handleFileChange = (e) => {
+        console.log("📍 Frontend using API_URL:", API_URL);
         setFile(e.target.files[0]);
         setStatus("");
     };
