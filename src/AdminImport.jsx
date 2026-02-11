@@ -106,6 +106,37 @@ const AdminImport = () => {
         }
     };
 
+    const downloadCSV = () => {
+        if (parsedData.length === 0) return;
+        const headers = ["brand", "model", "type", "dp", "mrp"];
+        const csvContent = [
+            headers.join(","),
+            ...parsedData.map(row => headers.map(fieldName => JSON.stringify(row[fieldName] || "")).join(","))
+        ].join("\n");
+
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `pricelist_export_${new Date().toISOString().slice(0, 10)}.csv`);
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const downloadJSON = () => {
+        if (parsedData.length === 0) return;
+        const blob = new Blob([JSON.stringify(parsedData, null, 2)], { type: "application/json" });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `pricelist_export_${new Date().toISOString().slice(0, 10)}.json`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <div className="p-6 max-w-6xl mx-auto bg-white min-h-screen">
             <h1 className="text-3xl font-bold mb-6 text-gray-800">Admin: PDF Pricelist Importer</h1>
@@ -122,83 +153,111 @@ const AdminImport = () => {
                     <button
                         onClick={handleParse}
                         disabled={!file || loading}
-                        className={`px-6 py-2 rounded-lg text-white font-semibold transition ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+                        className={`px-6 py-2 rounded-lg text-white font-semibold shadow-md transition ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
                             }`}
                     >
                         {loading ? "Scanning with AI..." : "Scan & Extract Data"}
                     </button>
                     <button
-                        onClick={() => { setParsedData([{ brand: "", model: "", type: "", dp: null, mrp: null }]); setStatus("Manual entry started."); }}
-                        className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-semibold"
+                        onClick={() => { setParsedData([{ brand: "", model: "", type: "", dp: null, mrp: null }, ...parsedData]); setStatus("Manual row added."); }}
+                        className="px-6 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 font-semibold shadow-sm"
                     >
-                        Start Manual Entry
+                        + Add Manually
                     </button>
                 </div>
-                {status && <p className="mt-4 text-gray-600 text-center max-w-2xl">{status}</p>}
+                {status && <p className="mt-4 text-sm text-gray-500 bg-gray-100 px-4 py-2 rounded-full">{status}</p>}
             </div>
 
-            {/* Review Section - Always accessible if there's an attempt or data */}
-            <div className="animate-fade-in">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-semibold">Review Extracted Data ({parsedData.length})</h2>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={handleAddRow}
-                            className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 font-semibold"
-                        >
-                            + Add Manually
-                        </button>
+            {/* Review Section - Spreadsheet UI */}
+            <div className="mt-8 bg-gray-50 border border-gray-200 rounded-xl overflow-hidden shadow-xl animate-fade-in">
+                <div className="p-4 bg-white border-b border-gray-200 flex justify-between items-center flex-wrap gap-4">
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-800">Review Data</h2>
+                        <p className="text-sm text-gray-500">{parsedData.length} records ready to process</p>
+                    </div>
+
+                    <div className="flex gap-3 items-center">
+                        <div className="flex rounded-md shadow-sm overflow-hidden border border-gray-300">
+                            <button
+                                onClick={downloadCSV}
+                                className="px-3 py-2 bg-white text-gray-700 text-xs font-bold hover:bg-gray-50 border-r border-gray-300 flex items-center gap-1"
+                            >
+                                ⬇️ CSV
+                            </button>
+                            <button
+                                onClick={downloadJSON}
+                                className="px-3 py-2 bg-white text-gray-700 text-xs font-bold hover:bg-gray-50 flex items-center gap-1"
+                            >
+                                ⬇️ JSON
+                            </button>
+                        </div>
+
                         <button
                             onClick={handleClearAll}
-                            className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 font-semibold"
+                            className="px-4 py-2 bg-red-50 text-red-600 text-sm font-bold rounded-lg hover:bg-red-100 transition"
                         >
                             Clear All
                         </button>
+
                         <button
                             onClick={handleImport}
-                            disabled={importing}
-                            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold shadow-lg"
+                            disabled={importing || parsedData.length === 0}
+                            className="px-8 py-2 bg-green-600 text-white font-black rounded-lg hover:bg-green-700 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105"
                         >
-                            {importing ? "Importing..." : "Approve & Save to Database"}
+                            {importing ? "SAVING..." : "SAVE TO DATABASE"}
                         </button>
                     </div>
                 </div>
 
-                <div className="overflow-x-auto shadow-md rounded-lg border border-gray-200">
-                    <table className="w-full text-sm text-left text-gray-500">
-                        <thead className="text-xs text-gray-700 uppercase bg-gray-100">
-                            <tr>
-                                <th className="px-4 py-3">Brand</th>
-                                <th className="px-4 py-3">Model</th>
-                                <th className="px-4 py-3">Type</th>
-                                <th className="px-4 py-3">Dealer Price</th>
-                                <th className="px-4 py-3">MRP</th>
-                                <th className="px-4 py-3">Action</th>
+                <div className="overflow-auto max-h-[600px] spreadsheet-container">
+                    <table className="w-full border-collapse bg-white">
+                        <thead className="sticky top-0 z-10 shadow-sm">
+                            <tr className="bg-gray-100 text-gray-600 text-xs uppercase font-bold text-left">
+                                <th className="px-4 py-3 border-r border-b border-gray-200 w-12 text-center bg-gray-100">#</th>
+                                <th className="px-4 py-3 border-r border-b border-gray-200 min-w-[150px]">Brand</th>
+                                <th className="px-4 py-3 border-r border-b border-gray-200 min-w-[200px]">Model / Pattern</th>
+                                <th className="px-4 py-3 border-r border-b border-gray-200 min-w-[120px]">Type</th>
+                                <th className="px-4 py-3 border-r border-b border-gray-200 min-w-[100px]">Dealer Price</th>
+                                <th className="px-4 py-3 border-r border-b border-gray-200 min-w-[100px]">MRP</th>
+                                <th className="px-4 py-3 border-b border-gray-200 w-16 text-center">Delete</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            {parsedData.map((item, index) => (
-                                <tr key={index} className="bg-white border-b hover:bg-gray-50">
-                                    {["brand", "model", "type", "dp", "mrp"].map((field) => (
-                                        <td key={field} className="px-2 py-2">
-                                            <input
-                                                type={field === "dp" || field === "mrp" ? "number" : "text"}
-                                                value={item[field] || ""}
-                                                onChange={(e) => handleDataChange(index, field, e.target.value)}
-                                                className="w-full p-1 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                                            />
-                                        </td>
-                                    ))}
-                                    <td className="px-4 py-2 text-center">
-                                        <button
-                                            onClick={() => handleDeleteRow(index)}
-                                            className="text-red-500 hover:text-red-700 font-bold"
-                                        >
-                                            ✕
-                                        </button>
+                        <tbody className="text-sm font-medium">
+                            {parsedData.length === 0 ? (
+                                <tr>
+                                    <td colSpan="7" className="py-20 text-center text-gray-400 italic">
+                                        No data yet. Upload a PDF or click "+ Add Manually" to begin.
                                     </td>
                                 </tr>
-                            ))}
+                            ) : (
+                                parsedData.map((item, index) => (
+                                    <tr key={index} className="hover:bg-blue-50/30 transition-colors">
+                                        <td className="px-4 py-2 border-r border-b border-gray-100 text-center text-gray-400 font-mono text-xs bg-gray-50/50">
+                                            {index + 1}
+                                        </td>
+                                        {["brand", "model", "type", "dp", "mrp"].map((field) => (
+                                            <td key={field} className="p-0 border-r border-b border-gray-100">
+                                                <input
+                                                    type={field === "dp" || field === "mrp" ? "number" : "text"}
+                                                    value={item[field] || ""}
+                                                    placeholder={`Enter ${field}...`}
+                                                    onChange={(e) => handleDataChange(index, field, e.target.value)}
+                                                    className="w-full h-10 px-4 focus:bg-white focus:ring-2 focus:ring-blue-400 focus:outline-none bg-transparent border-none transition-all placeholder-gray-300"
+                                                />
+                                            </td>
+                                        ))}
+                                        <td className="px-4 py-2 border-b border-gray-100 text-center">
+                                            <button
+                                                onClick={() => handleDeleteRow(index)}
+                                                className="w-8 h-8 flex items-center justify-center rounded-full text-red-300 hover:text-red-600 hover:bg-red-50 transition-all font-bold"
+                                                title="Delete this row"
+                                            >
+                                                ✕
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>
