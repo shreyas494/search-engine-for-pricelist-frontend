@@ -9,11 +9,11 @@ const AdminImport = () => {
     const [loading, setLoading] = useState(false);
     const [importing, setImporting] = useState(false);
     const [status, setStatus] = useState("");
+    const [rawMode, setRawMode] = useState(false);
 
     // Identify dynamic headers from the data
     const headers = useMemo(() => {
         if (!parsedData || parsedData.length === 0) return ["brand", "model", "type", "dp", "mrp"];
-        // Extract all unique keys from all objects to be safe, but usually just the first or majority
         const allKeys = new Set();
         parsedData.forEach(item => Object.keys(item).forEach(k => allKeys.add(k)));
         return Array.from(allKeys).filter(k => k.toLowerCase() !== "sr no" && k.toLowerCase() !== "sr. no" && k.toLowerCase() !== "s.no");
@@ -23,6 +23,7 @@ const AdminImport = () => {
         setFile(e.target.files[0]);
         setStatus("");
         setRawText("");
+        setRawMode(false);
     };
 
     const handleParse = async () => {
@@ -32,7 +33,7 @@ const AdminImport = () => {
         }
 
         setLoading(true);
-        setStatus("⌛ Scanning PDF... using dynamic header detection.");
+        setStatus("⌛ Scanning PDF... using Pure Local Heuristics (v5.1).");
 
         const formData = new FormData();
         formData.append("file", file);
@@ -51,10 +52,10 @@ const AdminImport = () => {
 
             if (Array.isArray(extractedData) && extractedData.length > 0) {
                 setParsedData(extractedData);
-                setStatus(`✅ Scan Complete: Found ${extractedData.length} items. (Using ${rawText.length > 2000 ? 'High-Performance Scanner' : 'Intelligent Scan'}).`);
+                setStatus(`✅ Scan Complete: Found ${extractedData.length} items. Smart-Stitching (v5.1) is active.`);
             } else {
-                setParsedData([]);
-                setStatus("⚠️ AI Quota Busy: No automatic results found. Please use '+ Add Row' to fill data manually or try again in a few minutes.");
+                setParsedData([{ brand: "FALLBACK", model: "Auto-parse failed. Please use RAW MODE button.", type: "", dp: 0, mrp: 0 }]);
+                setStatus("⚠️ Intelligent matching failed. Switching to Manual fallback.");
             }
         } catch (error) {
             console.error(error);
@@ -62,6 +63,24 @@ const AdminImport = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleRawImport = () => {
+        if (!rawText) {
+            alert("No text extracted yet. Please scan PDF first.");
+            return;
+        }
+        const lines = rawText.split('\n').filter(l => l.trim().length > 5);
+        const data = lines.map(line => ({
+            brand: "RAW",
+            model: line.trim(),
+            type: "Unparsed",
+            dp: 0,
+            mrp: 0
+        }));
+        setParsedData(data);
+        setRawMode(true);
+        setStatus("🛠️ RAW MODE: Lines shown exactly as extracted from PDF.");
     };
 
     const handleAddRow = () => {
