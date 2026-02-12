@@ -9,6 +9,7 @@ const AdminImport = () => {
     const [loading, setLoading] = useState(false);
     const [importing, setImporting] = useState(false);
     const [status, setStatus] = useState("");
+    // Force Deploy: v2.7.0 Simplified Form
 
     const handleFileChange = (e) => {
         setFile(e.target.files[0]);
