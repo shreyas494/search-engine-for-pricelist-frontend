@@ -51,10 +51,10 @@ const AdminImport = () => {
 
             if (Array.isArray(extractedData) && extractedData.length > 0) {
                 setParsedData(extractedData);
-                setStatus(`✅ Successfully identified ${extractedData.length} items and dynamic columns.`);
+                setStatus(`✅ Scan Complete: Found ${extractedData.length} items. (Using ${rawText.length > 2000 ? 'High-Performance Scanner' : 'Intelligent Scan'}).`);
             } else {
                 setParsedData([]);
-                setStatus("⚠️ AI could not detect a table structure. Please check the PDF or add manually.");
+                setStatus("⚠️ AI Quota Busy: No automatic results found. Please use '+ Add Row' to fill data manually or try again in a few minutes.");
             }
         } catch (error) {
             console.error(error);
