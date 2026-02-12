@@ -174,9 +174,16 @@ const AdminImport = () => {
                     <button
                         onClick={handleParse}
                         disabled={!file || loading}
-                        className="px-10 py-4 bg-gray-900 text-white rounded-xl font-black text-sm hover:bg-black transition-all shadow-lg active:scale-95 disabled:opacity-50"
+                        className="px-8 py-4 bg-gray-900 text-white rounded-xl font-black text-sm hover:bg-black transition-all shadow-lg active:scale-95 disabled:opacity-50"
                     >
-                        {loading ? "SCANNING..." : "SCAN PDF"}
+                        {loading ? "SCANNING..." : "INTELLIGENT SCAN"}
+                    </button>
+                    <button
+                        onClick={handleRawImport}
+                        disabled={!rawText && !file}
+                        className="px-8 py-4 bg-white border-2 border-gray-900 text-gray-900 rounded-xl font-black text-sm hover:bg-gray-50 transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                    >
+                        RAW MODE
                     </button>
                     <div className="h-10 w-px bg-gray-200 hidden md:block"></div>
                     <div className="flex gap-2">
