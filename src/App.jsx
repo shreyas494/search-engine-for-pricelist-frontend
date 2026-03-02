@@ -20,7 +20,7 @@ function App() {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
-    }, 500); // 500ms delay
+    }, 300); // 300ms delay
 
     return () => {
       clearTimeout(handler);
