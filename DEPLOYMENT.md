@@ -44,3 +44,20 @@ Your application has been refactored for optimal performance and split deploymen
 
 -   **Backend**: `cd backend && npm start` (Runs on port 5000)
 -   **Frontend**: `cd frontend && npm run dev` (Runs on port 5173, connects to localhost:5000)
+
+## ⚡ Prevent Loading Delays (Important!)
+
+Render's Free Tier puts the server to sleep after 15 minutes of inactivity. To keep your search engine fast 24/7, follow these steps:
+
+1.  **Use a Ping Service**: Go to [cron-job.org](https://cron-job.org/) (free).
+2.  **Create a New Cronjob**:
+    -   **URL**: `https://your-backend-url.onrender.com/api/health`
+    -   **Schedule**: Every 10 minutes.
+3.  **Result**: This "pokes" the server constantly so it never goes to sleep. Your site will load data instantly every time.
+
+## 🚀 Alternatives (Non-Sleep Platforms)
+
+If you don't want to use a ping service, consider these options:
+-   **Render (Starter Plan)**: $7/month – No sleep, reliable.
+-   **Railway.app**: ~$5/month – No sleep, very easy setup.
+-   **DigitalOcean / Hetzner**: $4-5/month – A "VPS" that is 100% yours and never sleeps.
