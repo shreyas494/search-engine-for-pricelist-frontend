@@ -35,8 +35,17 @@ function App() {
       .catch((err) => console.error("Error fetching brands:", err));
   }, []);
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSlow, setIsSlow] = useState(false);
+
   // ✅ Fetch tyres when brand/search/page changes
   useEffect(() => {
+    setIsLoading(true);
+    setIsSlow(false);
+
+    // Timer to detect if server is taking too long (cold start)
+    const slowTimer = setTimeout(() => setIsSlow(true), 2500);
+
     const params = new URLSearchParams();
     if (brandFilter) params.append("brand", brandFilter);
     if (debouncedSearchTerm) params.append("search", debouncedSearchTerm);
@@ -46,6 +55,7 @@ function App() {
     fetch(`${API_URL}/api/tyres?${params.toString()}`)
       .then((res) => res.json())
       .then((data) => {
+        clearTimeout(slowTimer);
         // Handle paginated response
         const resultTyres = data.tyres || [];
         setTyres(resultTyres);
@@ -60,7 +70,11 @@ function App() {
           setFields(allFields);
         }
       })
-      .catch((err) => console.error("Error fetching tyres:", err));
+      .catch((err) => console.error("Error fetching tyres:", err))
+      .finally(() => {
+        setIsLoading(false);
+        setIsSlow(false);
+      });
   }, [brandFilter, debouncedSearchTerm, page, limit]);
 
   // Reset page when filters change
@@ -139,7 +153,17 @@ function App() {
       </div>
 
       {/* 📋 Tyre Table */}
-      <div className="overflow-x-auto bg-white shadow rounded-lg mb-4">
+      <div className="relative overflow-x-auto bg-white shadow rounded-lg mb-4">
+        {isLoading && (
+          <div className="absolute inset-0 bg-white/70 flex flex-col items-center justify-center z-10">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
+            {isSlow && (
+              <p className="mt-4 text-blue-600 font-medium animate-pulse">
+                Server is waking up... Please wait about 15 seconds.
+              </p>
+            )}
+          </div>
+        )}
         <table className="min-w-full border border-gray-200">
           <thead className="bg-gray-100">
             <tr>
