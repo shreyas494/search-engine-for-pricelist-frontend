@@ -37,6 +37,12 @@ function App() {
 
   // ✅ Fetch tyres when brand/search/page changes
   useEffect(() => {
+    const params = new URLSearchParams();
+    if (brandFilter) params.append("brand", brandFilter);
+    if (debouncedSearchTerm) params.append("search", debouncedSearchTerm);
+    params.append("page", page);
+    params.append("limit", limit);
+
     fetch(`${API_URL}/api/tyres?${params.toString()}`)
       .then((res) => res.json())
       .then((data) => {
