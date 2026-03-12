@@ -105,10 +105,21 @@ function App() {
           <input
             type="text"
             placeholder="Search by model..."
-            className="w-full p-2 border rounded-lg"
+            className="w-full p-2 pr-10 border rounded-lg"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+          {searchTerm && (
+            <button
+              className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 focus:outline-none"
+              onClick={() => setSearchTerm("")}
+              title="Clear search"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </button>
+          )}
           {suggestions.length > 0 && (
             <ul className="absolute bg-white border w-full mt-1 rounded-lg shadow-lg z-10">
               {suggestions.map((tyre) => (
