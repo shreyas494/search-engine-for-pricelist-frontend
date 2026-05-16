@@ -1,0 +1,26 @@
+[
+{"brand":"LICKO PRICE LIST DT-1-1-26","type":"Automotive","model":"45D31R/L","ah":35,"dp":3067,"mrp":3834,"warranty":"12 MONTHS"},
+{"brand":"LICKO PRICE LIST DT-1-1-26","type":"Automotive","model":"NS60 (55B24L)","ah":45,"dp":4370,"mrp":5463,"warranty":"12 MONTHS"},
+{"brand":"LICKO PRICE LIST DT-1-1-26","type":"Automotive","model":"LXD 5500 RL - N50","ah":55,"dp":4658,"mrp":5823,"warranty":"12 MONTHS"},
+{"brand":"LICKO PRICE LIST DT-1-1-26","type":"Automotive","model":"LXD 6500 - N50","ah":65,"dp":5060,"mrp":6325,"warranty":"12 MONTHS"},
+{"brand":"LICKO PRICE LIST DT-1-1-26","type":"Automotive","model":"LXD 7500 - N70","ah":75,"dp":5693,"mrp":7117,"warranty":"12 MONTHS"},
+{"brand":"LICKO PRICE LIST DT-1-1-26","type":"Automotive","model":"99D31L - N88","ah":88,"dp":6268,"mrp":7835,"warranty":"12 MONTHS"},
+{"brand":"LICKO PRICE LIST DT-1-1-26","type":"Automotive","model":"LXD 1050-N100","ah":100,"dp":6958,"mrp":8698,"warranty":"12 MONTHS"},
+{"brand":"LICKO PRICE LIST DT-1-1-26","type":"Automotive","model":"LXD 12000 - N120","ah":120,"dp":8568,"mrp":10710,"warranty":"12 MONTHS"},
+{"brand":"LICKO PRICE LIST DT-1-1-26","type":"Automotive","model":"LXD 13500 - N150","ah":135,"dp":9085,"mrp":11357,"warranty":"12 MONTHS"},
+{"brand":"LICKO PRICE LIST DT-1-1-26","type":"Automotive","model":"LXD 15000 - N150","ah":150,"dp":9890,"mrp":12363,"warranty":"12 MONTHS"},
+
+{"brand":"LICKO PRICE LIST DT-1-1-26","type":"Tubular","model":"6 NP 40 (N 70Z)","ah":40,"dp":5233,"mrp":6542,"warranty":"24 MONTHS"},
+{"brand":"LICKO PRICE LIST DT-1-1-26","type":"Tubular","model":"6 NP 60 (N 120)","ah":60,"dp":8913,"mrp":11142,"warranty":"24 MONTHS"},
+{"brand":"LICKO PRICE LIST DT-1-1-26","type":"Tubular","model":"6 NP 100 (N 200)","ah":100,"dp":9200,"mrp":11500,"warranty":"24 MONTHS"},
+
+{"brand":"LICKO PRICE LIST DT-1-1-26","type":"Jumbo Tubular","model":"LB - 120 (N 200 Jumbo)","ah":120,"dp":10293,"mrp":12867,"warranty":"30 MONTHS"},
+{"brand":"LICKO PRICE LIST DT-1-1-26","type":"Jumbo Tubular","model":"LB - 150 (N 200 Jumbo)","ah":150,"dp":11155,"mrp":13944,"warranty":"30 MONTHS"},
+{"brand":"LICKO PRICE LIST DT-1-1-26","type":"Jumbo Tubular","model":"LB - 180 (N 200 Jumbo)","ah":180,"dp":12765,"mrp":15957,"warranty":"30 MONTHS"},
+{"brand":"LICKO PRICE LIST DT-1-1-26","type":"Jumbo Tubular","model":"LB - 200 (N 200 Jumbo)","ah":200,"dp":13340,"mrp":16675,"warranty":"30 MONTHS"},
+
+{"brand":"LICKO PRICE LIST DT-1-1-26","type":"Tall Tubular","model":"IP-700 (IT)","ah":150,"dp":11615,"mrp":14519,"warranty":"36 MONTHS"},
+{"brand":"LICKO PRICE LIST DT-1-1-26","type":"Tall Tubular","model":"IP-900 (IT)","ah":180,"dp":13053,"mrp":16317,"warranty":"36 MONTHS"},
+{"brand":"LICKO PRICE LIST DT-1-1-26","type":"Tall Tubular","model":"IP-900 (IT)","ah":200,"dp":13973,"mrp":17467,"warranty":"36 MONTHS"},
+{"brand":"LICKO PRICE LIST DT-1-1-26","type":"Tall Tubular","model":"IP-900 (IT)","ah":250,"dp":15583,"mrp":19479,"warranty":"36 MONTHS"}
+]

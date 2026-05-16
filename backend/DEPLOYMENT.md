@@ -19,7 +19,7 @@ Your application has been refactored for optimal performance and split deploymen
     -   `MONGO_URI`: *[Copy from your local `backend/.env` or the `mongodb...txt` file]*
     -   `FRONTEND_URL`: *[Leave empty for now]*
 7.  Click **Create Web Service**.
-8.  **Copy the Backend URL** (e.g., `https://search-engine-for-pricelist-backend.onrender.com`).
+8.  **Copy the Backend URL** (e.g., `https://search-engine-backend.onrender.com`).
 
 ## 2. Frontend Deployment (Vercel)
 
@@ -30,7 +30,7 @@ Your application has been refactored for optimal performance and split deploymen
     -   **Framework Preset**: Vite (should be auto-detected).
     -   **Root Directory**: `frontend` (Click "Edit" next to Root Directory).
 5.  **Environment Variables**:
-    -   `VITE_API_URL`: Paste your Render Backend URL (e.g., `https://search-engine-for-pricelist-backend.onrender.com`).
+    -   `VITE_API_URL`: Paste your Render Backend URL (e.g., `https://search-engine-backend.onrender.com`).
 6.  Click **Deploy**.
 7.  **Copy the Frontend URL** (e.g., `https://search-engine-frontend.vercel.app`).
 

@@ -14,13 +14,14 @@ function App() {
   const [brands, setBrands] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [fields, setFields] = useState([]); // dynamically detected fields
+  const [refreshingBrands, setRefreshingBrands] = useState(false);
 
 
   // ✅ Debounce Search Term
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
-    }, 500); // 500ms delay
+    }, 300); // 300ms delay
 
     return () => {
       clearTimeout(handler);
@@ -34,6 +35,22 @@ function App() {
       .then((data) => setBrands(data))
       .catch((err) => console.error("Error fetching brands:", err));
   }, []);
+
+  // ✅ Manual brand refresh (bypass cache)
+  const handleRefreshBrands = () => {
+    setRefreshingBrands(true);
+    fetch(`${API_URL}/api/brands`)
+      .then((res) => res.json())
+      .then((data) => {
+        setBrands(data);
+        alert("Brands refreshed! ✅");
+      })
+      .catch((err) => {
+        console.error("Error refreshing brands:", err);
+        alert("Error refreshing brands ❌");
+      })
+      .finally(() => setRefreshingBrands(false));
+  };
 
   // ✅ Fetch tyres when brand/search/page changes
   useEffect(() => {
@@ -77,7 +94,6 @@ function App() {
     const params = new URLSearchParams();
     if (brandFilter) params.append("brand", brandFilter);
     params.append("search", debouncedSearchTerm);
-    params.append("limit", 5); // Limit suggestions to 5
 
     fetch(`${API_URL}/api/tyres?${params.toString()}`)
       .then((res) => res.json())
@@ -95,6 +111,13 @@ function App() {
     );
   };
 
+  const handleSuggestionClick = (model) => {
+    setSearchTerm(model);
+    setDebouncedSearchTerm(model);
+    setPage(1);
+    setSuggestions([]);
+  };
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <h1 className="text-2xl font-bold mb-6">Tyre Inventory</h1>
@@ -105,17 +128,28 @@ function App() {
           <input
             type="text"
             placeholder="Search by model..."
-            className="w-full p-2 border rounded-lg"
+            className="w-full p-2 pr-10 border rounded-lg"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+          {searchTerm && (
+            <button
+              className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 focus:outline-none"
+              onClick={() => setSearchTerm("")}
+              title="Clear search"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </button>
+          )}
           {suggestions.length > 0 && (
-            <ul className="absolute bg-white border w-full mt-1 rounded-lg shadow-lg z-10">
+            <ul className="absolute bg-white border w-full mt-1 rounded-lg shadow-lg z-10 max-h-80 overflow-y-auto">
               {suggestions.map((tyre) => (
                 <li
                   key={tyre._id}
                   className="p-2 hover:bg-gray-100 cursor-pointer"
-                  onClick={() => setSearchTerm(tyre.model)}
+                  onClick={() => handleSuggestionClick(tyre.model)}
                 >
                   {tyre.model}
                 </li>
@@ -124,18 +158,28 @@ function App() {
           )}
         </div>
 
-        <select
-          className="p-2 border rounded-lg md:w-1/4"
-          value={brandFilter}
-          onChange={(e) => setBrandFilter(e.target.value)}
-        >
-          <option value="">All Brands</option>
-          {brands.map((brand) => (
-            <option key={brand} value={brand}>
-              {brand}
-            </option>
-          ))}
-        </select>
+        <div className="flex gap-2 md:w-1/4">
+          <select
+            className="flex-1 p-2 border rounded-lg"
+            value={brandFilter}
+            onChange={(e) => setBrandFilter(e.target.value)}
+          >
+            <option value="">All Brands</option>
+            {brands.map((brand) => (
+              <option key={brand} value={brand}>
+                {brand}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={handleRefreshBrands}
+            disabled={refreshingBrands}
+            className="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            title="Refresh brand list (bypass cache)"
+          >
+            {refreshingBrands ? "🔄" : "🔄"}
+          </button>
+        </div>
       </div>
 
       {/* 📋 Tyre Table */}
