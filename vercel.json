@@ -4,13 +4,11 @@
     {
       "src": "frontend/package.json",
       "use": "@vercel/static-build",
-      "config": { "distDir": "dist" }
+      "config": { "distDir": "frontend/dist" }
     }
   ],
+  "outputDirectory": "frontend/dist",
   "env": {
     "VITE_API_URL": "https://search-engine-for-pricelist-backend-8s8x.onrender.com"
-  },
-  "routes": [
-    { "src": "/(.*)", "dest": "/index.html" }
-  ]
+  }
 }
