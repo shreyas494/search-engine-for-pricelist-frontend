@@ -124,6 +124,16 @@ app.get("/api/brands", async (req, res) => {
   }
 });
 
+// Lightweight cron endpoint to keep the service awake.
+// External pingers (cron, UptimeRobot) can call this URL periodically.
+app.get("/cron/ping", (req, res) => {
+  res.json({
+    status: "ok",
+    uptime_seconds: Math.round(process.uptime()),
+    timestamp: Date.now()
+  });
+});
+
 // ✅ Start server
 app.listen(PORT, "0.0.0.0", () =>
   console.log(`🚀 Server running on http://0.0.0.0:${PORT}`)
