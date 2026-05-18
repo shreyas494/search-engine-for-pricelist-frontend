@@ -1,0 +1,92 @@
+[
+  {
+    "brand": "Microtek 12v & 24v inverter 7-5-26",
+    "model": "HEAVYDUTY VTURBO NEW 1400 12V DG",
+    "capacity": "1400",
+    "voltage": "12V",
+    "type": "DG",
+    "dealerPrice": 6203,
+    "mrp": 10590
+  },
+  {
+    "brand": "Microtek 12v & 24v inverter 7-5-26",
+    "model": "HEAVYDUTY VTURBO NEW 1550 12V DG",
+    "capacity": "1550",
+    "voltage": "12V",
+    "type": "DG",
+    "dealerPrice": 7195,
+    "mrp": 10690
+  },
+  {
+    "brand": "Microtek 12v & 24v inverter 7-5-26",
+    "model": "HEAVYDUTY VTURBO NEW 1750 12V DG",
+    "capacity": "1750",
+    "voltage": "12V",
+    "type": "DG",
+    "dealerPrice": 9083,
+    "mrp": 14690
+  },
+  {
+    "brand": "Microtek 12v & 24v inverter 7-5-26",
+    "model": "HEAVYDUTY VTURBO NEW 2000 24V DG",
+    "capacity": "2000",
+    "voltage": "24V",
+    "type": "DG",
+    "dealerPrice": 7755,
+    "mrp": 13190
+  },
+  {
+    "brand": "Microtek 12v & 24v inverter 7-5-26",
+    "model": "HEAVYDUTY VTURBO NEW 2350 24V DG",
+    "capacity": "2350",
+    "voltage": "24V",
+    "type": "DG",
+    "dealerPrice": 10306,
+    "mrp": 17190
+  },
+  {
+    "brand": "Microtek 12v & 24v inverter 7-5-26",
+    "model": "HEAVYDUTY VTURBO NEW 1400 12V SW",
+    "capacity": "1400",
+    "voltage": "12V",
+    "type": "SW",
+    "dealerPrice": 6980,
+    "mrp": 11290
+  },
+  {
+    "brand": "Microtek 12v & 24v inverter 7-5-26",
+    "model": "HEAVYDUTY VTURBO NEW 1550 12V SW",
+    "capacity": "1550",
+    "voltage": "12V",
+    "type": "SW",
+    "dealerPrice": 8209,
+    "mrp": 12090
+  },
+  {
+    "brand": "Microtek 12v & 24v inverter 7-5-26",
+    "model": "HEAVYDUTY VTURBO NEW 1750 12V SW",
+    "capacity": "1750",
+    "voltage": "12V",
+    "type": "SW",
+    "dealerPrice": 9939,
+    "mrp": 15190
+  },
+  {
+    "brand": "Microtek 12v & 24v inverter 7-5-26",
+    "model": "HEAVYDUTY VTURBO NEW 2000 24V SW",
+    "capacity": "2000",
+    "voltage": "24V",
+    "type": "SW",
+    "dealerPrice": 8607,
+    "mrp": 13690
+  },
+  {
+    "brand": "Microtek 12v & 24v inverter 7-5-26",
+    "model": "HEAVYDUTY VTURBO NEW 2350 24V SW",
+    "capacity": "2350",
+    "voltage": "24V",
+    "type": "SW",
+    "dealerPrice": 11465,
+    "mrp": 19190
+  }
+]
