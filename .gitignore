@@ -1,3 +1,8 @@
 node_modules
 backend/node_modules
 .env
+
+# Ignore backend price-list JSON files but keep backend package files
+/backend/*.json
+!/backend/package.json
+!/backend/package-lock.json
