@@ -1,0 +1,35 @@
+[
+  {
+    "brand": "Microtek lithium battery 1.5.26",
+    "series": "LITHIUM ION",
+    "model": "MLB1280060",
+    "energyWh": 1280,
+    "capacityAh": 100,
+    "voltage": "12.8V",
+    "warranty": "5 Years",
+    "dealerPrice": 19147,
+    "mrp": 29990
+  },
+  {
+    "brand": "Microtek lithium battery 1.5.26",
+    "series": "LITHIUM ION",
+    "model": "MLB2560060",
+    "energyWh": 2560,
+    "capacityAh": 100,
+    "voltage": "25.6V",
+    "warranty": "5 Years",
+    "dealerPrice": 36297,
+    "mrp": 53990
+  },
+  {
+    "brand": "Microtek lithium battery 1.5.26",
+    "series": "LITHIUM ION",
+    "model": "MLB5120060",
+    "energyWh": 5120,
+    "capacityAh": 100,
+    "voltage": "51.2V",
+    "warranty": "5 Years",
+    "dealerPrice": 69763,
+    "mrp": 99990
+  }
+]
