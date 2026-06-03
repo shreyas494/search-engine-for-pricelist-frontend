@@ -13,6 +13,7 @@ function App() {
   const [brandFilter, setBrandFilter] = useState("");
   const [brands, setBrands] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
+  const [showAutocomplete, setShowAutocomplete] = useState(true);
   const [fields, setFields] = useState([]); // dynamically detected fields
   const [refreshingBrands, setRefreshingBrands] = useState(false);
 
@@ -87,7 +88,7 @@ function App() {
 
   // ✅ Autocomplete suggestions (Now debounced via debouncedSearchTerm)
   useEffect(() => {
-    if (!debouncedSearchTerm) {
+    if (!debouncedSearchTerm || !showAutocomplete) {
       setSuggestions([]);
       return;
     }
@@ -99,7 +100,7 @@ function App() {
       .then((res) => res.json())
       .then((data) => setSuggestions(data.tyres || []))
       .catch((err) => console.error("Error fetching suggestions:", err));
-  }, [debouncedSearchTerm, brandFilter]);
+  }, [debouncedSearchTerm, brandFilter, showAutocomplete]);
 
   // ✅ Copy details dynamically
   const copyTyreDetails = (tyre) => {
@@ -132,6 +133,25 @@ function App() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+          {/* Toggle autocomplete suggestions */}
+          <button
+            className="absolute left-3 top-2.5 text-gray-500 hover:text-gray-700 focus:outline-none"
+            onClick={() => {
+              setShowAutocomplete((s) => !s);
+              if (showAutocomplete) setSuggestions([]);
+            }}
+            title={showAutocomplete ? "Hide suggestions" : "Show suggestions"}
+          >
+            {showAutocomplete ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M10 3C5 3 1.1 6.1 0 10c1.1 3.9 5 7 10 7s8.9-3.1 10-7c-1.1-3.9-5-7-10-7zM10 14a4 4 0 100-8 4 4 0 000 8z" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M2.94 2.94a.75.75 0 10-1.06 1.06l14.12 14.12a.75.75 0 101.06-1.06L2.94 2.94zM10 4c4.97 0 8.7 3.3 9.76 6-.5 1.63-1.96 3.26-3.8 4.45L7.55 6.29C8.74 5.17 9.35 4.57 10 4zM4.24 6.06C3.08 7.79 2.47 9.65 2 11c1.06 2.7 4.79 6 9.76 6 .6 0 1.2-.06 1.79-.18L4.24 6.06z" />
+              </svg>
+            )}
+          </button>
           {searchTerm && (
             <button
               className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 focus:outline-none"
@@ -143,7 +163,7 @@ function App() {
               </svg>
             </button>
           )}
-          {suggestions.length > 0 && (
+          {showAutocomplete && suggestions.length > 0 && (
             <ul className="absolute bg-white border w-full mt-1 rounded-lg shadow-lg z-10 max-h-80 overflow-y-auto">
               {suggestions.map((tyre) => (
                 <li
