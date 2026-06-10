@@ -159,9 +159,9 @@ function App() {
           )}
         </div>
 
-        <div className="flex gap-2 md:w-1/2">
+        <div className="flex gap-2 w-full md:w-1/2">
           <select
-            className="flex-1 p-2 border rounded-lg"
+            className="flex-grow p-2 border rounded-lg min-w-0"
             value={brandFilter}
             onChange={(e) => setBrandFilter(e.target.value)}
           >
@@ -175,7 +175,7 @@ function App() {
           <button
             onClick={handleRefreshBrands}
             disabled={refreshingBrands}
-            className="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed flex-shrink-0"
             title="Refresh brand list (bypass cache)"
           >
             {refreshingBrands ? "🔄" : "🔄"}
@@ -188,7 +188,7 @@ function App() {
                 return next;
               });
             }}
-            className={`px-3 py-2 rounded-lg border flex items-center justify-center gap-1 ${
+            className={`px-3 py-2 rounded-lg border flex items-center justify-center gap-1 flex-shrink-0 ${
               showAutocomplete ? "bg-blue-500 text-white border-blue-500 hover:bg-blue-600" : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
             }`}
             title={showAutocomplete ? "Hide suggestions" : "Show suggestions"}
