@@ -179,22 +179,23 @@ function App() {
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <h1 className="text-2xl font-bold mb-6">Tyre Inventory</h1>
+    <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
+      <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">Tyre Inventory</h1>
 
       {/* 🔎 Search + Brand Filter */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
+      <div className="flex flex-col md:flex-row gap-3 sm:gap-4 mb-6">
         <div className="relative w-full md:w-1/2">
           <input
             type="text"
             placeholder="Search by model..."
-            className="w-full p-2 pr-10 border rounded-lg"
+            className="w-full p-2.5 sm:p-2 pr-10 border rounded-lg text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:outline-none"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            aria-label="Search by model"
           />
           {searchTerm && (
             <button
-              className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 focus:outline-none"
+              className="absolute right-3 top-3 sm:top-2.5 text-gray-400 hover:text-gray-600 focus:outline-none"
               onClick={() => setSearchTerm("")}
               title="Clear search"
             >
@@ -208,7 +209,7 @@ function App() {
               {suggestions.map((tyre) => (
                 <li
                   key={tyre._id}
-                  className="p-2 hover:bg-gray-100 cursor-pointer"
+                  className="p-2.5 sm:p-2 hover:bg-gray-100 cursor-pointer text-sm"
                   onClick={() => handleSuggestionClick(tyre.model)}
                 >
                   {tyre.model}
@@ -220,7 +221,7 @@ function App() {
 
         <div className="flex gap-2 w-full md:w-1/2">
           <select
-            className="flex-grow p-2 border rounded-lg min-w-0"
+            className="flex-grow p-2.5 sm:p-2 border rounded-lg min-w-0 text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:outline-none"
             value={brandFilter}
             onChange={(e) => setBrandFilter(e.target.value)}
           >
@@ -234,7 +235,7 @@ function App() {
           <button
             onClick={handleRefreshBrands}
             disabled={refreshingBrands}
-            className="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed flex-shrink-0"
+            className="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed flex-shrink-0 min-h-[40px]"
             title="Refresh brand list (bypass cache)"
           >
             {refreshingBrands ? "🔄" : "🔄"}
@@ -247,47 +248,128 @@ function App() {
                 return next;
               });
             }}
-            className={`px-3 py-2 rounded-lg border flex items-center justify-center gap-1 flex-shrink-0 ${
+            className={`px-3 py-2 rounded-lg border flex-shrink-0 flex items-center justify-center gap-1 min-h-[40px] ${
               showAutocomplete ? "bg-blue-500 text-white border-blue-500 hover:bg-blue-600" : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
             }`}
             title={showAutocomplete ? "Hide suggestions" : "Show suggestions"}
+            aria-pressed={!showAutocomplete}
           >
             {showAutocomplete ? (
               <>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M10 3C5 3 1.1 6.1 0 10c1.1 3.9 5 7 10 7s8.9-3.1 10-7c-1.1-3.9-5-7-10-7zM10 14a4 4 0 100-8 4 4 0 000 8z" />
                 </svg>
-                <span className="hidden sm:inline">Suggestions On</span>
+                <span className="hidden sm:inline text-xs sm:text-sm">Suggestions On</span>
               </>
             ) : (
               <>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M2.94 2.94a.75.75 0 10-1.06 1.06l14.12 14.12a.75.75 0 101.06-1.06L2.94 2.94zM10 4c4.97 0 8.7 3.3 9.76 6-.5 1.63-1.96 3.26-3.8 4.45L7.55 6.29C8.74 5.17 9.35 4.57 10 4zM4.24 6.06C3.08 7.79 2.47 9.65 2 11c1.06 2.7 4.79 6 9.76 6 .6 0 1.2-.06 1.79-.18L4.24 6.06z" />
                 </svg>
-                <span className="hidden sm:inline">Suggestions Off</span>
+                <span className="hidden sm:inline text-xs sm:text-sm">Suggestions Off</span>
               </>
             )}
           </button>
         </div>
       </div>
 
-      {/* 🏷️ Available Brands & Management */}
-      <div className="bg-white p-5 shadow-sm rounded-xl mb-6 border border-gray-200">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-gray-100">
+      {/* 📋 Tyre Table */}
+      <div className="overflow-x-auto bg-white shadow rounded-lg mb-6">
+        <table className="min-w-full border border-gray-200">
+          <thead className="bg-gray-100">
+            <tr>
+              {fields.map((field) => (
+                <th key={field} className="border p-2.5 text-left text-xs sm:text-sm font-semibold text-gray-700">
+                  {field.charAt(0).toUpperCase() + field.slice(1)}
+                </th>
+              ))}
+              {fields.length > 0 && (
+                <th className="border p-2.5 text-left text-xs sm:text-sm font-semibold text-gray-700">Copy</th>
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {tyres.length > 0 ? (
+              tyres.map((tyre) => (
+                <tr key={tyre._id} className="hover:bg-gray-50 text-xs sm:text-sm">
+                  {fields.map((field) => (
+                    <td key={field} className="border p-2.5">
+                      {tyre[field] || "-"}
+                    </td>
+                  ))}
+                  <td className="border p-2.5">
+                    <button
+                      className="px-2.5 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 font-medium"
+                      onClick={() => copyTyreDetails(tyre)}
+                    >
+                      Copy
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td
+                  colSpan={fields.length + 1 || 1}
+                  className="border p-4 text-center text-gray-500 text-xs sm:text-sm"
+                >
+                  No products found
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* 🔢 Pagination Controls */}
+      {pages > 1 && (
+        <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-4 shadow rounded-lg gap-3 mb-6">
+          <span className="text-xs sm:text-sm text-gray-600 text-center sm:text-left">
+            Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} products
+          </span>
+          <div className="flex gap-2 w-full sm:w-auto justify-center">
+            <button
+              disabled={page === 1}
+              onClick={() => setPage(page - 1)}
+              className={`px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm border rounded-lg ${
+                page === 1 ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "hover:bg-gray-50 text-gray-700"
+              }`}
+            >
+              Previous
+            </button>
+            <span className="flex items-center px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm border rounded-lg bg-gray-50 font-medium text-gray-700">
+              Page {page} of {pages}
+            </span>
+            <button
+              disabled={page === pages}
+              onClick={() => setPage(page + 1)}
+              className={`px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm border rounded-lg ${
+                page === pages ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "hover:bg-gray-50 text-gray-700"
+              }`}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 🏷️ Available Brands & Brand Management (Below Data) */}
+      <div className="bg-white p-4 sm:p-5 shadow-sm rounded-xl border border-gray-200 mt-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100">
           <div>
-            <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+            <h2 className="text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2">
               <span className="p-1 bg-blue-100 text-blue-600 rounded-md text-sm">🏷️</span> 
-              Available Brands ({brands.length})
+              Brand Data Management ({brands.length})
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">
-              Click a brand to filter inventory. Use the red delete button in front of each brand to remove all its data.
+              Delete all price list data for a brand or add test brands for verification.
             </p>
           </div>
-          <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={handleAddTestData}
               disabled={insertingTestData}
-              className="text-xs text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-300 transition-colors font-medium flex items-center gap-1 disabled:opacity-50"
+              className="text-xs text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 rounded-lg border border-emerald-300 transition-colors font-medium flex items-center gap-1.5 disabled:opacity-50 min-h-[36px]"
               title="Insert sample test brands & items into inventory"
             >
               {insertingTestData ? "⏳ Adding..." : "➕ Add Test Brands"}
@@ -295,7 +377,7 @@ function App() {
             {brandFilter && (
               <button
                 onClick={() => setBrandFilter("")}
-                className="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200 transition-colors font-medium"
+                className="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg border border-blue-200 transition-colors font-medium min-h-[36px]"
               >
                 Clear Filter ({brandFilter})
               </button>
@@ -304,7 +386,7 @@ function App() {
         </div>
 
         {brands.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3">
             {brands.map((brand) => {
               const isSelected = brandFilter === brand;
               const isDeleting = deletingBrand === brand;
@@ -312,19 +394,19 @@ function App() {
               return (
                 <div
                   key={brand}
-                  className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                  className={`flex items-center justify-between p-2.5 sm:p-3 rounded-xl border transition-all ${
                     isSelected
                       ? "bg-blue-50/80 border-blue-400 ring-2 ring-blue-400/20 shadow-sm"
-                      : "bg-gray-50/70 border-gray-200 hover:border-gray-300 hover:bg-gray-100/80"
+                      : "bg-gray-50/80 border-gray-200 hover:border-gray-300 hover:bg-gray-100/80"
                   }`}
                 >
                   <button
                     onClick={() => setBrandFilter(isSelected ? "" : brand)}
-                    className="flex items-center gap-2 text-left focus:outline-none flex-grow min-w-0 mr-2 group"
+                    className="flex items-center gap-2 text-left focus:outline-none flex-grow min-w-0 mr-2 group py-1"
                     title={isSelected ? "Click to clear filter" : `Filter inventory by ${brand}`}
                   >
                     <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isSelected ? "bg-blue-500" : "bg-gray-400 group-hover:bg-gray-600"}`} />
-                    <span className={`truncate font-semibold text-sm ${isSelected ? "text-blue-900" : "text-gray-800"}`}>
+                    <span className={`truncate font-semibold text-xs sm:text-sm ${isSelected ? "text-blue-900" : "text-gray-800"}`}>
                       {brand}
                     </span>
                   </button>
@@ -332,8 +414,9 @@ function App() {
                   <button
                     onClick={() => handleDeleteBrand(brand)}
                     disabled={isDeleting}
-                    className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-red-600 hover:text-red-700 bg-white hover:bg-red-50 border border-red-200 hover:border-red-300 rounded-lg shadow-2xs transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:text-red-700 bg-white hover:bg-red-50 border border-red-200 hover:border-red-300 rounded-lg shadow-2xs transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[32px]"
                     title={`Permanently delete all data for brand "${brand}"`}
+                    aria-label={`Delete all data for brand ${brand}`}
                   >
                     {isDeleting ? (
                       <span className="animate-pulse text-red-600 font-bold">Deleting...</span>
@@ -362,89 +445,11 @@ function App() {
             })}
           </div>
         ) : (
-          <div className="text-center py-6 text-gray-500 italic bg-gray-50 rounded-xl border border-dashed border-gray-200">
+          <div className="text-center py-6 text-gray-500 italic bg-gray-50 rounded-xl border border-dashed border-gray-200 text-xs sm:text-sm">
             No brands available in inventory.
           </div>
         )}
       </div>
-
-      {/* 📋 Tyre Table */}
-      <div className="overflow-x-auto bg-white shadow rounded-lg mb-4">
-        <table className="min-w-full border border-gray-200">
-          <thead className="bg-gray-100">
-            <tr>
-              {fields.map((field) => (
-                <th key={field} className="border p-2 text-left">
-                  {field.charAt(0).toUpperCase() + field.slice(1)}
-                </th>
-              ))}
-              {fields.length > 0 && (
-                <th className="border p-2 text-left">Copy</th>
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {tyres.length > 0 ? (
-              tyres.map((tyre) => (
-                <tr key={tyre._id} className="hover:bg-gray-50">
-                  {fields.map((field) => (
-                    <td key={field} className="border p-2">
-                      {tyre[field] || "-"}
-                    </td>
-                  ))}
-                  <td className="border p-2">
-                    <button
-                      className="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-                      onClick={() => copyTyreDetails(tyre)}
-                    >
-                      Copy
-                    </button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td
-                  colSpan={fields.length + 1 || 1}
-                  className="border p-2 text-center text-gray-500"
-                >
-                  No products found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* 🔢 Pagination Controls */}
-      {pages > 1 && (
-        <div className="flex justify-between items-center bg-white p-4 shadow rounded-lg">
-          <span className="text-gray-600">
-            Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} products
-          </span>
-          <div className="flex gap-2">
-            <button
-              disabled={page === 1}
-              onClick={() => setPage(page - 1)}
-              className={`px-4 py-2 border rounded-lg ${page === 1 ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "hover:bg-gray-50"
-                }`}
-            >
-              Previous
-            </button>
-            <span className="flex items-center px-4 py-2 border rounded-lg bg-gray-50 font-medium">
-              Page {page} of {pages}
-            </span>
-            <button
-              disabled={page === pages}
-              onClick={() => setPage(page + 1)}
-              className={`px-4 py-2 border rounded-lg ${page === pages ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "hover:bg-gray-50"
-                }`}
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
