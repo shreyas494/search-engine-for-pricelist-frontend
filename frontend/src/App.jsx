@@ -252,9 +252,13 @@ function App() {
     setSuggestions([]);
   };
 
-  // Calculate pinned totals
+  // Calculate pinned totals & fields dynamically across all pinned products
   const totalPinnedDP = pinnedItems.reduce((acc, curr) => acc + (typeof curr.dp === "number" ? curr.dp : 0), 0);
   const totalPinnedMRP = pinnedItems.reduce((acc, curr) => acc + (typeof curr.mrp === "number" ? curr.mrp : 0), 0);
+
+  const pinnedFields = Array.from(
+    new Set(pinnedItems.flatMap((item) => Object.keys(item)))
+  ).filter((f) => f !== "_id" && f !== "__v");
 
   return (
     <div className="p-4 sm:p-6 bg-gray-50 min-h-screen pb-28 font-sans text-gray-800">
@@ -647,7 +651,7 @@ function App() {
       {/* 🪟 Full Customer Quote Drawer (Modal) */}
       {isDrawerOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white w-full max-w-4xl max-h-[85vh] rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200 animate-in fade-in slide-in-from-bottom duration-200">
+          <div className="bg-white w-full max-w-5xl max-h-[85vh] rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200 animate-in fade-in slide-in-from-bottom duration-200">
             
             {/* Drawer Header */}
             <div className="p-4 bg-gray-900 text-white flex items-center justify-between">
@@ -701,53 +705,68 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Pinned Products List */}
-                  <div className="space-y-3">
-                    {pinnedItems.map((item, index) => (
-                      <div
-                        key={item._id}
-                        className="bg-white p-3.5 rounded-xl border border-gray-200 shadow-2xs flex items-center justify-between gap-3"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span className="w-6 h-6 rounded-full bg-amber-100 text-amber-800 font-bold text-xs flex items-center justify-center flex-shrink-0">
-                            {index + 1}
-                          </span>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-gray-900 text-sm truncate">
-                                {item.model || "Product"}
-                              </span>
-                              {item.brand && (
-                                <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs font-semibold">
-                                  {item.brand}
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-xs text-gray-500 mt-0.5 flex flex-wrap gap-x-3">
-                              {item.type && <span>Type: {item.type}</span>}
-                              {item.dp && <span className="font-semibold text-gray-800">DP: ₹{item.dp.toLocaleString("en-IN")}</span>}
-                              {item.mrp && <span>MRP: ₹{item.mrp.toLocaleString("en-IN")}</span>}
-                            </div>
-                          </div>
-                        </div>
+                  {/* Pinned Products Full Table View */}
+                  <div className="overflow-x-auto bg-white shadow-xs rounded-xl border border-gray-200">
+                    <table className="min-w-full border-collapse">
+                      <thead className="bg-amber-100/80">
+                        <tr>
+                          <th className="border-b border-amber-200 p-3 text-center text-xs sm:text-sm font-semibold text-amber-900 w-28">
+                            Actions
+                          </th>
+                          {pinnedFields.map((field) => (
+                            <th key={field} className="border-b border-amber-200 p-3 text-left text-xs sm:text-sm font-semibold text-amber-900 capitalize whitespace-nowrap">
+                              {field}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {pinnedItems.map((item) => (
+                          <tr key={item._id} className="hover:bg-amber-50/50 text-xs sm:text-sm">
+                            {/* Action Buttons */}
+                            <td className="p-2.5 text-center whitespace-nowrap">
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button
+                                  onClick={(e) => copyTyreDetails(item, e)}
+                                  className="px-2.5 py-1 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium transition-colors"
+                                  title="Copy product details"
+                                >
+                                  Copy
+                                </button>
+                                <button
+                                  onClick={(e) => togglePin(item, e)}
+                                  className="px-2.5 py-1 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-md font-semibold transition-colors border border-red-200"
+                                  title="Remove from quote"
+                                >
+                                  Remove ❌
+                                </button>
+                              </div>
+                            </td>
 
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <button
-                            onClick={(e) => copyTyreDetails(item, e)}
-                            className="px-2.5 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
-                          >
-                            Copy
-                          </button>
-                          <button
-                            onClick={(e) => togglePin(item, e)}
-                            className="px-2.5 py-1 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-semibold transition-colors"
-                            title="Remove from quote"
-                          >
-                            Remove ❌
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                            {/* Full Product Column Values */}
+                            {pinnedFields.map((field) => (
+                              <td key={field} className="p-3 text-gray-800 whitespace-nowrap">
+                                {field === "dp" || field === "mrp" ? (
+                                  typeof item[field] === "number" ? (
+                                    <span className="font-semibold text-gray-900">
+                                      ₹{item[field].toLocaleString("en-IN")}
+                                    </span>
+                                  ) : (
+                                    item[field] || "-"
+                                  )
+                                ) : field === "brand" ? (
+                                  <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-900 border border-amber-200">
+                                    {item[field]}
+                                  </span>
+                                ) : (
+                                  item[field] || "-"
+                                )}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               ) : (
