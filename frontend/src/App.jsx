@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 function App() {
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -16,6 +16,30 @@ function App() {
   const [fields, setFields] = useState([]);
   const [refreshingBrands, setRefreshingBrands] = useState(false);
   const [deletingBrand, setDeletingBrand] = useState(null);
+
+  // 🔎 Searchable brand dropdown
+  const [brandMenuOpen, setBrandMenuOpen] = useState(false);
+  const [brandQuery, setBrandQuery] = useState("");
+  const brandMenuRef = useRef(null);
+  const filteredBrands = brands.filter((b) =>
+    b.toLowerCase().includes(brandQuery.trim().toLowerCase())
+  );
+
+  // Close brand dropdown on outside click
+  useEffect(() => {
+    if (!brandMenuOpen) return;
+    const onDown = (e) => {
+      if (brandMenuRef.current && !brandMenuRef.current.contains(e.target)) setBrandMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [brandMenuOpen]);
+
+  const pickBrand = (brand) => {
+    setBrandFilter(brand);
+    setBrandMenuOpen(false);
+    setBrandQuery("");
+  };
 
   // 📌 Pinned items (Customer Quote Tray)
   const [pinnedItems, setPinnedItems] = useState(() => {
@@ -335,18 +359,59 @@ function App() {
 
           {/* Brand Selector + Control Buttons */}
           <div className="flex gap-2 w-full md:w-1/2">
-            <select
-              className="flex-grow p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all min-w-0"
-              value={brandFilter}
-              onChange={(e) => setBrandFilter(e.target.value)}
-            >
-              <option value="">All Brands (Global Search)</option>
-              {brands.map((brand) => (
-                <option key={brand} value={brand}>
-                  {brand}
-                </option>
-              ))}
-            </select>
+            <div ref={brandMenuRef} className="relative flex-grow min-w-0">
+              <button
+                type="button"
+                onClick={() => setBrandMenuOpen((o) => !o)}
+                className="w-full h-full p-2.5 border border-gray-300 rounded-lg text-sm text-left bg-white flex items-center justify-between gap-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all"
+              >
+                <span className="truncate">{brandFilter || "All Brands (Global Search)"}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 flex-shrink-0 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5.3 7.3a1 1 0 011.4 0L10 10.6l3.3-3.3a1 1 0 111.4 1.4l-4 4a1 1 0 01-1.4 0l-4-4a1 1 0 010-1.4z" clipRule="evenodd" />
+                </svg>
+              </button>
+
+              {brandMenuOpen && (
+                <div className="absolute z-30 mt-1 w-full min-w-[220px] bg-white border border-gray-300 rounded-lg shadow-lg">
+                  <div className="p-2 border-b border-gray-200">
+                    <input
+                      autoFocus
+                      type="text"
+                      value={brandQuery}
+                      onChange={(e) => setBrandQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") setBrandMenuOpen(false);
+                        if (e.key === "Enter" && filteredBrands.length > 0) pickBrand(filteredBrands[0]);
+                      }}
+                      placeholder="Search brand..."
+                      className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+                  <ul className="max-h-64 overflow-y-auto py-1 text-sm">
+                    {!brandQuery.trim() && (
+                      <li
+                        onClick={() => pickBrand("")}
+                        className={`px-3 py-2 cursor-pointer hover:bg-blue-50 ${brandFilter === "" ? "bg-blue-100 font-semibold" : ""}`}
+                      >
+                        All Brands (Global Search)
+                      </li>
+                    )}
+                    {filteredBrands.map((brand) => (
+                      <li
+                        key={brand}
+                        onClick={() => pickBrand(brand)}
+                        className={`px-3 py-2 cursor-pointer hover:bg-blue-50 ${brandFilter === brand ? "bg-blue-100 font-semibold" : ""}`}
+                      >
+                        {brand}
+                      </li>
+                    ))}
+                    {filteredBrands.length === 0 && (
+                      <li className="px-3 py-2 text-gray-500">No brands found</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
 
             <button
               onClick={handleRefreshBrands}
