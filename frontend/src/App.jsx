@@ -21,8 +21,8 @@ function App() {
   const [brandMenuOpen, setBrandMenuOpen] = useState(false);
   const [brandQuery, setBrandQuery] = useState("");
   const brandMenuRef = useRef(null);
-  const filteredBrands = brands.filter((b) =>
-    b.toLowerCase().includes(brandQuery.trim().toLowerCase())
+  const filteredBrands = brands.filter(
+    (b) => typeof b === "string" && b.toLowerCase().includes(brandQuery.trim().toLowerCase())
   );
 
   // Close brand dropdown on outside click
@@ -105,7 +105,10 @@ function App() {
   useEffect(() => {
     fetch(`${API_URL}/api/brands`)
       .then((res) => res.json())
-      .then((data) => setBrands(data || []))
+      .then((data) => {
+        const clean = Array.isArray(data) ? data.filter((b) => typeof b === "string" && b.trim().length > 0) : [];
+        setBrands(clean);
+      })
       .catch((err) => console.error("Error fetching brands:", err));
   }, [API_URL]);
 
@@ -115,7 +118,8 @@ function App() {
     fetch(`${API_URL}/api/brands?refresh=true`)
       .then((res) => res.json())
       .then((data) => {
-        setBrands(data || []);
+        const clean = Array.isArray(data) ? data.filter((b) => typeof b === "string" && b.trim().length > 0) : [];
+        setBrands(clean);
         setToastMessage("Brand list refreshed! ✅");
       })
       .catch((err) => {
@@ -150,7 +154,8 @@ function App() {
       })
       .then((res) => res.json())
       .then((updatedBrands) => {
-        setBrands(updatedBrands || []);
+        const clean = Array.isArray(updatedBrands) ? updatedBrands.filter((b) => typeof b === "string" && b.trim().length > 0) : [];
+        setBrands(clean);
         setPage(1);
       })
       .catch((err) => {
