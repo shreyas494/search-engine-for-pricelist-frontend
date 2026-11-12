@@ -1,7 +1,8 @@
 // smartSearch.js
 // Fast in-browser search that tolerates spoken / misspelled input.
-// "3.00-18 ezeeride", "3 18 easy ride" and "three hundred eighteen ezee ride"
-// all find "3.00-18 EZEERIDE N6 TT SET".
+// "3.00-18 ezeeride", "3 18 easy ride", "three point zero zero eighteen ezee ride"
+// and Marathi "teen shambhar athra" all find "3.00-18 EZEERIDE N6 TT SET".
+import { HALF_VALUES, PLUS_HALF, indianNumber, spellingKey } from "./indianNumbers";
 
 const SKIP_FIELDS = new Set(["_id", "__v", "brand", "dp", "cp", "mrp", "dealerPrice", "createdAt", "updatedAt"]);
 
@@ -17,33 +18,81 @@ const SYMBOL_WORDS = {
   point: ".", dot: ".", dash: "-", hyphen: "-", minus: "-", by: "/", slash: "/", upon: "/",
 };
 
-// Turn spoken words into the symbols used in price lists.
-export function normalizeQuery(text) {
+const DEVANAGARI_DIGITS = "०१२३४५६७८९";
+
+// Turn spoken words into the symbols used in price lists, e.g.
+// "three point seven five dash 18" / "teen panchattar 18" -> "3.75-18"
+// Marathi/Hindi number words are only converted for speech (spoken: true),
+// so typed product words like "sola" stay as they are.
+export function normalizeQuery(text, { spoken: fromSpeech = false } = {}) {
+  const words = String(text ?? "")
+    .toLowerCase()
+    .replace(/[०-९]/g, (d) => DEVANAGARI_DIGITS.indexOf(d))
+    .replace(/[–—]/g, "-")
+    .replace(/[,?!]/g, " ")
+    .replace(/\.(?!\d)/g, " ") // full stop at the end of a sentence
+    .split(/\s+/)
+    .filter(Boolean);
+
   const out = [];
-  let spoken = null; // number being built from spoken words, e.g. "three hundred eighteen"
+  let spoken = null; // number being built from English words, e.g. "three hundred eighteen"
+  let compound = false; // spoken came from "<digit> hundred"
   const flush = () => {
     if (spoken !== null) out.push(String(spoken));
     spoken = null;
+    compound = false;
   };
-  for (const w of String(text ?? "").toLowerCase().replace(/[–—]/g, "-").split(/\s+/)) {
+
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i];
     const n = NUMBER_WORDS[w];
-    if (n === undefined) {
-      flush();
-      out.push(SYMBOL_WORDS[w] ?? w);
-    } else if (n === "100") {
-      spoken = (spoken || 1) * 100; // "three hundred" -> 300
+
+    if (n === "100" && spoken !== null && spoken >= 1 && spoken <= 9) {
+      spoken *= 100; // "three hundred" -> 300
+      compound = true;
     } else if (
+      n !== undefined &&
       spoken !== null &&
-      ((spoken >= 100 && spoken % 100 === 0) || (spoken % 100 >= 20 && spoken % 10 === 0 && +n < 10))
+      ((compound && spoken % 100 === 0 && +n < 100) || (spoken >= 20 && spoken < 100 && spoken % 10 === 0 && +n < 10))
     ) {
-      spoken += +n; // "three hundred" + "eighteen", "twenty" + "five"
-    } else {
+      spoken += +n; // "three hundred" + "eighteen", "seventy" + "five"
+    } else if (n !== undefined) {
       flush();
       spoken = +n;
+    } else {
+      flush();
+      // Marathi / Hindi: "saade teen" = 3.50, "adich" = 2.50, "panchattar" = 75
+      const next = words[i + 1];
+      const half = HALF_VALUES[spellingKey(w)];
+      const nextNum = next && (NUMBER_WORDS[next] ?? indianNumber(next) ?? (/^\d+$/.test(next) ? next : undefined));
+      if (!fromSpeech) {
+        out.push(SYMBOL_WORDS[w] ?? w);
+      } else if (PLUS_HALF.has(w) && nextNum !== undefined) {
+        out.push(`${nextNum}.50`);
+        i++;
+      } else if (half) {
+        out.push(half);
+      } else if (indianNumber(w) !== undefined) {
+        out.push(indianNumber(w));
+      } else if (next && !/\d/.test(w + next) && indianNumber(w + next) !== undefined) {
+        out.push(indianNumber(w + next)); // recognizer split one word in two: "punch attar"
+        i++;
+      } else {
+        out.push(SYMBOL_WORDS[w] ?? w);
+      }
     }
   }
   flush();
-  return out.join(" ").replace(/\s*([./-])\s*/g, "$1").trim();
+
+  return out
+    .join(" ")
+    .replace(/\s*([./-])\s*/g, "$1") // "3 . 7 5 - 18" -> "3.7 5-18"
+    .replace(/(\d\.\d)\s(\d)(?!\d)/g, "$1$2") // "3.7 5" -> "3.75"
+    .replace(/\b(\d) 100 (\d{2})\b/g, "$1.00-$2") // "teen shambhar athra" -> "3.00-18"
+    .replace(/\b(\d) (\d{2}) (\d{2})\b/g, "$1.$2-$3") // "3 75 18" -> "3.75-18"
+    .replace(/\b(\d\.\d{1,2}) (\d{2})\b/g, "$1-$2") // "3.75 18" -> "3.75-18"
+    .replace(/\b(\d{2,3})[ /](\d{2,3}) (\d{2})\b/g, "$1/$2-$3") // "90 90 17" -> "90/90-17"
+    .trim();
 }
 
 const digitsOf = (s) => s.replace(/\D/g, "");
@@ -111,7 +160,7 @@ function longestCommonRun(a, b) {
 
 function digitScore(q, entry) {
   if (entry.modelDigits.includes(q.digits)) return 1;
-  if (entry.allDigits.includes(q.digits)) return 0.95;
+  if (entry.fieldDigits.some((d) => d.includes(q.digits))) return 0.95;
   if (q.digitsNoZeros && entry.modelDigitsNoZeros.includes(q.digitsNoZeros)) return 0.85; // "3 18" vs "3.00-18"
   // Partly matching size (e.g. 3.00-17 for 3.00-18): useful as a "close" result
   return (0.6 * longestCommonRun(q.digits, entry.modelDigits)) / q.digits.length;
@@ -138,20 +187,26 @@ function lettersScore(q, entry) {
 // Pre-compute search keys for one product (do this once per product).
 export function indexItem(item) {
   const model = String(item.model ?? "").toLowerCase();
-  const other = Object.entries(item)
-    .filter(([k, v]) => k !== "model" && !SKIP_FIELDS.has(k) && typeof v === "string")
-    .map(([, v]) => v.toLowerCase())
-    .join(" ");
-  const all = `${model} ${other}`;
+  const fields = Object.entries(item).filter(
+    ([k, v]) => k !== "model" && !SKIP_FIELDS.has(k) && typeof v === "string"
+  );
+  // Codes (e.g. Dunlop material_code) can be typed exactly, but must not fuzzy-match sizes
+  const isCode = ([k]) => /code/i.test(k);
+  const other = fields.filter((f) => !isCode(f)).map(([, v]) => v.toLowerCase());
+  const codes = fields.filter(isCode).map(([, v]) => v.toLowerCase());
+  // Brand name (without date) is searchable too: "mrf 3.75-18", "exide 75ah"
+  const brand = item.brand ? brandLabel(item.brand).toLowerCase() : "";
+  const all = [model, ...other, brand].filter(Boolean).join(" ");
   const words = wordsOf(all);
   const modelDigits = digitsOf(model);
   return {
     item,
-    text: all,
+    text: [all, ...codes].join(" "),
     compact: all.replace(/[^a-z0-9]/g, ""),
     modelDigits,
     modelDigitsNoZeros: stripZeros(modelDigits),
-    allDigits: digitsOf(all),
+    // digits of each other field separately, so numbers from different columns don't join up
+    fieldDigits: other.map(digitsOf).filter(Boolean),
     letters: lettersOf(all),
     // single words plus neighbouring pairs ("ezee ride" -> "ezeeride")
     candidates: words.concat(words.slice(1).map((w, i) => words[i] + w)).map(keyed),
@@ -213,6 +268,43 @@ export function brandLabel(brand) {
   return String(brand)
     .replace(/\s*(dt[-\s]*)?\d{1,2}\s*[.\-–/\s]\s*\d{1,2}\s*[.\-–/\s]\s*\d{2,4}\s*$/i, "")
     .trim();
+}
+
+// Date at the end of a brand name as a sortable number (newest = largest)
+function brandDate(brand) {
+  const m = String(brand).match(/(\d{1,2})\D+(\d{1,2})\D+(\d{2,4})\s*$/);
+  if (!m) return 0;
+  const year = +m[3] < 100 ? 2000 + +m[3] : +m[3];
+  return year * 10000 + +m[2] * 100 + +m[1];
+}
+
+// Finds a brand name said at the start or end of a search, e.g. "mrf 3.75-18 ezeeride".
+// Returns { brand, rest } when exactly one brand fits (newest list if it has several),
+// { brand: null, rest: text, ambiguous: true } when a brand word fits several brands,
+// otherwise { brand: null, rest: text }.
+export function splitBrand(text, brands) {
+  const words = text.split(" ").filter(Boolean);
+  const labels = brands.map((b) => ({ b, l: lettersOf(brandLabel(b).toLowerCase()) }));
+  for (let n = Math.min(4, words.length); n >= 1; n--) {
+    for (const start of new Set([0, words.length - n])) {
+      const win = words.slice(start, start + n);
+      if (win.some((w) => /\d/.test(w))) continue; // never swallow a size
+      const said = lettersOf(win.join(""));
+      if (said.length < 2) continue;
+      const hits = labels.filter(
+        ({ l }) => l && (l === said || (said.length >= 4 && ((start === 0 && l.startsWith(said)) || ratio(said, l) >= 0.8)))
+      );
+      if (!hits.length) continue;
+      const exact = hits.filter(({ l }) => l === said);
+      const pool = exact.length ? exact : hits;
+      // Several different brands fit (e.g. "luminous" battery + inverter): don't guess
+      if (new Set(pool.map(({ l }) => l)).size > 1) return { brand: null, rest: text, ambiguous: true };
+      const brand = pool.map(({ b }) => b).sort((a, b) => brandDate(b) - brandDate(a))[0];
+      const rest = words.filter((_, i) => i < start || i >= start + n).join(" ");
+      return { brand, rest };
+    }
+  }
+  return { brand: null, rest: text };
 }
 
 // Pick the brand that best matches what was said. Returns null if nothing is close.

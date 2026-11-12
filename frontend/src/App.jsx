@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import { indexItem, matchBrand, searchItems } from "./smartSearch";
+import { EXACT_SCORE, indexItem, matchBrand, normalizeQuery, searchItems, splitBrand } from "./smartSearch";
 import { speechErrorMessage, useSpeech } from "./useSpeech";
 
 const CACHE_KEY = "pricelist_cache_v1";
@@ -200,7 +200,11 @@ function App() {
     if (!query) return { mode: "all", items: brandIndex.map((e) => e.item) };
     const inBrand = searchItems(query, brandIndex);
     if (inBrand.exact.length) return { mode: "exact", items: inBrand.exact };
-    if (inBrand.close.length) return { mode: "close", items: inBrand.close };
+    if (inBrand.close.length) {
+      // Exact matches in other brands are offered with a one-tap switch
+      const otherExact = brandFilter ? searchItems(query, index, 0).exact.length : 0;
+      return { mode: "close", items: inBrand.close, otherExact };
+    }
     if (brandFilter) {
       const everywhere = searchItems(query, index);
       const items = everywhere.exact.length ? everywhere.exact : everywhere.close;
@@ -227,17 +231,23 @@ function App() {
   // 🎤 Voice search: model / size
   const modelVoice = useSpeech({
     onResult: (alternatives, isFinal) => {
-      // Use whichever of the heard phrases matches the price list best
-      let best = alternatives[0] || "";
-      let bestScore = -1;
+      // Clean up each heard phrase ("three point seven five dash 18" -> "3.75-18"),
+      // pull out a brand name if one was said, and keep the phrase that matches best.
+      // Marathi number conversion is tried both ways ("sola tubular" is a product, "sola" is also 16).
+      let best = null;
       for (const alt of alternatives) {
-        const score = searchItems(alt, brandIndex, 1).bestScore;
-        if (score > bestScore) {
-          best = alt;
-          bestScore = score;
+        for (const spoken of [true, false]) {
+          const { brand, rest, ambiguous } = splitBrand(normalizeQuery(alt, { spoken }), brands);
+          // "exide ..." fits several Exide lists: search all brands, the word narrows it down
+          const scope = brand ? index.filter((e) => e.item.brand === brand) : ambiguous ? index : brandIndex;
+          let score = rest ? searchItems(rest, scope, 1).bestScore : 0;
+          if (!spoken && score < EXACT_SCORE) score = -1; // unconverted words only win on an exact hit
+          if (!best || score > best.score) best = { brand: brand ?? (ambiguous ? "" : null), rest, score };
         }
       }
-      setSearchTerm(best);
+      if (!best) return;
+      if (best.brand !== null && best.brand !== brandFilter) setBrandFilter(best.brand);
+      setSearchTerm(best.rest);
       setSuggestionsHidden(isFinal);
     },
     onError: (code) => setToastMessage(speechErrorMessage(code)),
@@ -538,6 +548,14 @@ function App() {
         >
           {result.mode === "close" && (
             <>No exact match for <strong>“{query}”</strong>{brandFilter && <> in <strong>{brandFilter}</strong></>}. Showing the closest matches.</>
+          )}
+          {result.mode === "close" && result.otherExact > 0 && (
+            <button
+              onClick={() => setBrandFilter("")}
+              className="block mt-1.5 font-bold text-blue-700 hover:text-blue-900 underline"
+            >
+              ✅ {result.otherExact} exact match{result.otherExact > 1 ? "es" : ""} in other brands – show
+            </button>
           )}
           {result.mode === "other-brands" && (
             <>Nothing close to <strong>“{query}”</strong> in <strong>{brandFilter}</strong>. Showing matches from other brands.</>
