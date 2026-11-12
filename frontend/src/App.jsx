@@ -233,20 +233,20 @@ function App() {
     onResult: (alternatives, isFinal) => {
       // Clean up each heard phrase ("three point seven five dash 18" -> "3.75-18"),
       // pull out a brand name if one was said, and keep the phrase that matches best.
+      // No brand said ("2.75 rib") = search all brands; "mrf 2.75 rib" = MRF only.
       // Marathi number conversion is tried both ways ("sola tubular" is a product, "sola" is also 16).
       let best = null;
       for (const alt of alternatives) {
         for (const spoken of [true, false]) {
-          const { brand, rest, ambiguous } = splitBrand(normalizeQuery(alt, { spoken }), brands);
-          // "exide ..." fits several Exide lists: search all brands, the word narrows it down
-          const scope = brand ? index.filter((e) => e.item.brand === brand) : ambiguous ? index : brandIndex;
+          const { brand, rest } = splitBrand(normalizeQuery(alt, { spoken }), brands);
+          const scope = brand ? index.filter((e) => e.item.brand === brand) : index;
           let score = rest ? searchItems(rest, scope, 1).bestScore : 0;
           if (!spoken && score < EXACT_SCORE) score = -1; // unconverted words only win on an exact hit
-          if (!best || score > best.score) best = { brand: brand ?? (ambiguous ? "" : null), rest, score };
+          if (!best || score > best.score) best = { brand: brand ?? "", rest, score };
         }
       }
       if (!best) return;
-      if (best.brand !== null && best.brand !== brandFilter) setBrandFilter(best.brand);
+      if (best.brand !== brandFilter) setBrandFilter(best.brand);
       setSearchTerm(best.rest);
       setSuggestionsHidden(isFinal);
     },

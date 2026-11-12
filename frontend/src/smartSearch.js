@@ -90,7 +90,7 @@ export function normalizeQuery(text, { spoken: fromSpeech = false } = {}) {
     .replace(/(\d\.\d)\s(\d)(?!\d)/g, "$1$2") // "3.7 5" -> "3.75"
     .replace(/\b(\d) 100 (\d{2})\b/g, "$1.00-$2") // "teen shambhar athra" -> "3.00-18"
     .replace(/\b(\d) (\d{2}) (\d{2})\b/g, "$1.$2-$3") // "3 75 18" -> "3.75-18"
-    .replace(/\b(\d\.\d{1,2}) (\d{2})\b/g, "$1-$2") // "3.75 18" -> "3.75-18"
+    .replace(/\b(\d\.\d{1,2}) (\d{1,2})\b/g, "$1-$2") // "3.75 18" -> "3.75-18", "4.00 8" -> "4.00-8"
     .replace(/\b(\d{2,3})[ /](\d{2,3}) (\d{2})\b/g, "$1/$2-$3") // "90 90 17" -> "90/90-17"
     .trim();
 }
@@ -100,9 +100,11 @@ const lettersOf = (s) => s.replace(/[^a-z]/g, "");
 const stripZeros = (s) => s.replace(/0/g, "");
 const wordsOf = (s) => s.split(/[^a-z]+/).filter(Boolean);
 
-// Rough "sounds like" key: ezeeride / easyride / ezyride -> asrd
+// Rough "sounds like" key: ezeeride / easyride / ezyride -> asrd.
+// Letters speech often mixes up count as the same: rib / rip / ribs.
 function phonetic(word) {
   let s = word
+    .replace(/(.{3,})s$/, "$1") // plural
     .replace(/ph/g, "f")
     .replace(/ck/g, "k")
     .replace(/c(?=[eiy])/g, "s")
@@ -111,6 +113,9 @@ function phonetic(word) {
     .replace(/z/g, "s")
     .replace(/w/g, "v")
     .replace(/y/g, "i")
+    .replace(/b/g, "p")
+    .replace(/d/g, "t")
+    .replace(/g/g, "k")
     .replace(/h/g, "");
   if (!s) return "";
   const first = /[aeiou]/.test(s[0]) ? "a" : s[0];
@@ -169,7 +174,8 @@ function digitScore(q, entry) {
 function lettersScore(q, entry) {
   if (!entry.candidates.length) return 0;
   const best = (qw) => {
-    if (qw.w.length >= 2 && entry.letters.includes(qw.w)) return 1;
+    // Inside-word match only for longer words, so "rip" doesn't hit "accelogrip"
+    if (qw.w.length >= 4 && entry.letters.includes(qw.w)) return 1;
     let top = 0;
     for (const c of entry.candidates) {
       const s = wordSimilarity(qw, c);
@@ -201,6 +207,7 @@ export function indexItem(item) {
   const modelDigits = digitsOf(model);
   return {
     item,
+    model,
     text: [all, ...codes].join(" "),
     compact: all.replace(/[^a-z0-9]/g, ""),
     modelDigits,
@@ -231,6 +238,9 @@ export function prepareQuery(query) {
 // Score 0..1 for how well a prepared query matches an indexed product.
 export function scoreEntry(q, entry) {
   if (!q.text) return 0;
+  // Name said exactly / name starts with what was said: put these first
+  if (entry.model === q.text) return 1.02;
+  if (q.text.length >= 3 && entry.model.startsWith(q.text)) return 1.01;
   if (entry.text.includes(q.text)) return 1;
   if (q.compact && entry.compact.includes(q.compact)) return 1;
 
@@ -284,16 +294,22 @@ function brandDate(brand) {
 // otherwise { brand: null, rest: text }.
 export function splitBrand(text, brands) {
   const words = text.split(" ").filter(Boolean);
-  const labels = brands.map((b) => ({ b, l: lettersOf(brandLabel(b).toLowerCase()) }));
-  for (let n = Math.min(4, words.length); n >= 1; n--) {
+  const alnum = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const labels = brands.map((b) => ({ b, l: alnum(brandLabel(b)) }));
+  for (let n = Math.min(5, words.length); n >= 1; n--) {
     for (const start of new Set([0, words.length - n])) {
       const win = words.slice(start, start + n);
-      if (win.some((w) => /\d/.test(w))) continue; // never swallow a size
-      const said = lettersOf(win.join(""));
-      if (said.length < 2) continue;
-      const hits = labels.filter(
-        ({ l }) => l && (l === said || (said.length >= 4 && ((start === 0 && l.startsWith(said)) || ratio(said, l) >= 0.8)))
-      );
+      const said = alnum(win.join(""));
+      if (lettersOf(said).length < 2) continue;
+      const hasDigits = /\d/.test(said);
+      const hits = labels.filter(({ l }) => {
+        if (!l) return false;
+        if (l === said) return true;
+        // a size like "2.75" is never part of a brand name unless the brand has numbers ("exide 2wh")
+        if (hasDigits || said.length < 4) return false;
+        if (start === 0 && l.startsWith(said)) return true; // "exide" -> exide lists
+        return Math.abs(l.length - said.length) <= 1 && ratio(said, l) >= 0.85; // small slips: "luminus"
+      });
       if (!hits.length) continue;
       const exact = hits.filter(({ l }) => l === said);
       const pool = exact.length ? exact : hits;
