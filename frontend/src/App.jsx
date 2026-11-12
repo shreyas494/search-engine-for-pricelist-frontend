@@ -1,21 +1,47 @@
-import { useEffect, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { indexItem, matchBrand, searchItems } from "./smartSearch";
+import { speechErrorMessage, useSpeech } from "./useSpeech";
+
+const CACHE_KEY = "pricelist_cache_v1";
+
+function readCache() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CACHE_KEY));
+    return Array.isArray(saved?.items) ? saved.items : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeCache(items) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ savedAt: Date.now(), items }));
+  } catch {
+    /* storage full or blocked: search still works, just not offline */
+  }
+}
 
 function App() {
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-  const [tyres, setTyres] = useState([]);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [pages, setPages] = useState(1);
   const [limit] = useState(20); // Items per page
   const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
-  const [brands, setBrands] = useState([]);
-  const [suggestions, setSuggestions] = useState([]);
+  const [suggestionsHidden, setSuggestionsHidden] = useState(false);
   const [showAutocomplete, setShowAutocomplete] = useState(true);
-  const [fields, setFields] = useState([]);
   const [refreshingBrands, setRefreshingBrands] = useState(false);
   const [deletingBrand, setDeletingBrand] = useState(null);
+
+  // ⚡ Whole price list kept in the browser, so search never waits for the server
+  const [allItems, setAllItems] = useState(readCache);
+  const [loadingItems, setLoadingItems] = useState(false);
+  const brands = useMemo(
+    () =>
+      [...new Set(allItems.map((i) => i.brand))]
+        .filter((b) => typeof b === "string" && b.trim().length > 0)
+        .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" })),
+    [allItems]
+  );
 
   // 🔎 Searchable brand dropdown
   const [brandMenuOpen, setBrandMenuOpen] = useState(false);
@@ -92,42 +118,38 @@ function App() {
     return pinnedItems.some((item) => item._id === tyreId);
   };
 
-  // Debounce Search Term
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-    }, 300);
-
-    return () => clearTimeout(handler);
-  }, [searchTerm]);
-
-  // Fetch brands for dropdown
-  useEffect(() => {
-    fetch(`${API_URL}/api/brands`)
-      .then((res) => res.json())
-      .then((data) => {
-        const clean = Array.isArray(data) ? data.filter((b) => typeof b === "string" && b.trim().length > 0) : [];
-        setBrands(clean);
+  // 🔄 Load the full price list (cached copy shows instantly, fresh copy replaces it)
+  const loadItems = (manual = false) => {
+    setLoadingItems(true);
+    if (manual) setRefreshingBrands(true);
+    return fetch(`${API_URL}/api/tyres?limit=0`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`Server error ${res.status}`);
+        return res.json();
       })
-      .catch((err) => console.error("Error fetching brands:", err));
-  }, [API_URL]);
-
-  // Manual brand refresh (bypass cache)
-  const handleRefreshBrands = () => {
-    setRefreshingBrands(true);
-    fetch(`${API_URL}/api/brands?refresh=true`)
-      .then((res) => res.json())
       .then((data) => {
-        const clean = Array.isArray(data) ? data.filter((b) => typeof b === "string" && b.trim().length > 0) : [];
-        setBrands(clean);
-        setToastMessage("Brand list refreshed! ✅");
+        const items = Array.isArray(data.tyres) ? data.tyres : [];
+        setAllItems(items);
+        writeCache(items);
+        if (manual) setToastMessage("Price list refreshed! ✅");
       })
       .catch((err) => {
-        console.error("Error refreshing brands:", err);
-        setToastMessage("Error refreshing brands ❌");
+        console.error("Error loading price list:", err);
+        if (manual) setToastMessage("Error refreshing price list ❌");
       })
-      .finally(() => setRefreshingBrands(false));
+      .finally(() => {
+        setLoadingItems(false);
+        setRefreshingBrands(false);
+      });
   };
+
+  useEffect(() => {
+    loadItems();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [API_URL]);
+
+  // Manual refresh (new price list uploaded)
+  const handleRefreshBrands = () => loadItems(true);
 
   // Delete all data for a specific brand
   const handleDeleteBrand = (brandToDelete) => {
@@ -150,12 +172,11 @@ function App() {
         if (brandFilter === brandToDelete) {
           setBrandFilter("");
         }
-        return fetch(`${API_URL}/api/brands?refresh=true`);
-      })
-      .then((res) => res.json())
-      .then((updatedBrands) => {
-        const clean = Array.isArray(updatedBrands) ? updatedBrands.filter((b) => typeof b === "string" && b.trim().length > 0) : [];
-        setBrands(clean);
+        setAllItems((prev) => {
+          const next = prev.filter((item) => item.brand !== brandToDelete);
+          writeCache(next);
+          return next;
+        });
         setPage(1);
       })
       .catch((err) => {
@@ -165,52 +186,80 @@ function App() {
       .finally(() => setDeletingBrand(null));
   };
 
-  // Fetch tyres when brand/search/page changes
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (brandFilter) params.append("brand", brandFilter);
-    if (debouncedSearchTerm) params.append("search", debouncedSearchTerm);
-    params.append("page", page);
-    params.append("limit", limit);
+  // 🔎 Smart search, all in the browser
+  const index = useMemo(() => allItems.map(indexItem), [allItems]);
+  const brandIndex = useMemo(
+    () => (brandFilter ? index.filter((e) => e.item.brand === brandFilter) : index),
+    [index, brandFilter]
+  );
+  const query = useDeferredValue(searchTerm.trim());
 
-    fetch(`${API_URL}/api/tyres?${params.toString()}`)
-      .then((res) => res.json())
-      .then((data) => {
-        const resultTyres = data.tyres || [];
-        setTyres(resultTyres);
-        setTotal(data.total || 0);
-        setPages(data.pages || 1);
+  // mode: "all" (no search), "exact", "close" (closest in this brand),
+  // "other-brands" (nothing close in selected brand), "none"
+  const result = useMemo(() => {
+    if (!query) return { mode: "all", items: brandIndex.map((e) => e.item) };
+    const inBrand = searchItems(query, brandIndex);
+    if (inBrand.exact.length) return { mode: "exact", items: inBrand.exact };
+    if (inBrand.close.length) return { mode: "close", items: inBrand.close };
+    if (brandFilter) {
+      const everywhere = searchItems(query, index);
+      const items = everywhere.exact.length ? everywhere.exact : everywhere.close;
+      if (items.length) return { mode: "other-brands", items };
+    }
+    return { mode: "none", items: [] };
+  }, [query, brandIndex, index, brandFilter]);
 
-        if (resultTyres.length > 0) {
-          const allFields = Array.from(
-            new Set(resultTyres.flatMap((item) => Object.keys(item)))
-          ).filter((f) => f !== "_id" && f !== "__v");
-          setFields(allFields);
-        }
-      })
-      .catch((err) => console.error("Error fetching tyres:", err));
-  }, [brandFilter, debouncedSearchTerm, page, limit, API_URL]);
+  const total = result.items.length;
+  const pages = Math.max(1, Math.ceil(total / limit));
+  const tyres = result.items.slice((page - 1) * limit, page * limit);
+  const fields = Array.from(new Set(tyres.flatMap((item) => Object.keys(item)))).filter(
+    (f) => f !== "_id" && f !== "__v"
+  );
+
+  const suggestions =
+    showAutocomplete && !suggestionsHidden && query && result.mode !== "all" ? result.items.slice(0, 8) : [];
 
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [brandFilter, debouncedSearchTerm]);
+  }, [brandFilter, query]);
 
-  // Autocomplete suggestions
-  useEffect(() => {
-    if (!debouncedSearchTerm || !showAutocomplete) {
-      setSuggestions([]);
-      return;
-    }
-    const params = new URLSearchParams();
-    if (brandFilter) params.append("brand", brandFilter);
-    params.append("search", debouncedSearchTerm);
+  // 🎤 Voice search: model / size
+  const modelVoice = useSpeech({
+    onResult: (alternatives, isFinal) => {
+      // Use whichever of the heard phrases matches the price list best
+      let best = alternatives[0] || "";
+      let bestScore = -1;
+      for (const alt of alternatives) {
+        const score = searchItems(alt, brandIndex, 1).bestScore;
+        if (score > bestScore) {
+          best = alt;
+          bestScore = score;
+        }
+      }
+      setSearchTerm(best);
+      setSuggestionsHidden(isFinal);
+    },
+    onError: (code) => setToastMessage(speechErrorMessage(code)),
+  });
 
-    fetch(`${API_URL}/api/tyres?${params.toString()}`)
-      .then((res) => res.json())
-      .then((data) => setSuggestions(data.tyres || []))
-      .catch((err) => console.error("Error fetching suggestions:", err));
-  }, [debouncedSearchTerm, brandFilter, showAutocomplete, API_URL]);
+  // 🎤 Voice search: brand
+  const brandVoice = useSpeech({
+    onResult: (alternatives, isFinal) => {
+      if (!isFinal) return;
+      for (const alt of alternatives) {
+        const match = matchBrand(alt, brands);
+        if (match !== null) {
+          setBrandFilter(match);
+          setBrandMenuOpen(false);
+          setToastMessage(match ? `Brand: ${match} 🎤` : "All Brands (Global Search) 🎤");
+          return;
+        }
+      }
+      setToastMessage(`No brand found for "${alternatives[0] || ""}" 🎤`);
+    },
+    onError: (code) => setToastMessage(speechErrorMessage(code)),
+  });
 
   // Copy details dynamically
   const copyTyreDetails = (tyre, e) => {
@@ -257,15 +306,9 @@ function App() {
   };
 
   const handleSuggestionClick = (tyre) => {
-    if (typeof tyre === "string") {
-      setSearchTerm(tyre);
-      setDebouncedSearchTerm(tyre);
-    } else {
-      setSearchTerm(tyre.model || "");
-      setDebouncedSearchTerm(tyre.model || "");
-    }
+    setSearchTerm(typeof tyre === "string" ? tyre : tyre.model || "");
     setPage(1);
-    setSuggestions([]);
+    setSuggestionsHidden(true);
   };
 
   return (
@@ -316,15 +359,26 @@ function App() {
           <div className="relative w-full md:w-1/2">
             <input
               type="text"
-              placeholder="Search by model, specs, size..."
-              className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all"
+              placeholder={modelVoice.listening ? "Listening… e.g. 3.00-18 ezeeride" : "Search by model, specs, size..."}
+              className={`w-full p-2.5 pr-20 border rounded-lg text-base sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all ${
+                modelVoice.listening ? "border-red-400 ring-2 ring-red-300" : "border-gray-300"
+              }`}
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setSuggestionsHidden(false);
+              }}
               aria-label="Search by model"
+            />
+            <MicButton
+              listening={modelVoice.listening}
+              onClick={modelVoice.start}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2"
+              label="Search model by voice"
             />
             {searchTerm && (
               <button
-                className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 focus:outline-none"
+                className="absolute right-11 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
                 onClick={() => setSearchTerm("")}
                 title="Clear search"
               >
@@ -370,7 +424,9 @@ function App() {
                 onClick={() => setBrandMenuOpen((o) => !o)}
                 className="w-full h-full p-2.5 border border-gray-300 rounded-lg text-sm text-left bg-white flex items-center justify-between gap-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all"
               >
-                <span className="truncate">{brandFilter || "All Brands (Global Search)"}</span>
+                <span className={`truncate ${brandVoice.listening ? "text-red-600 font-semibold" : ""}`}>
+                  {brandVoice.listening ? "Listening… say a brand" : brandFilter || "All Brands (Global Search)"}
+                </span>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 flex-shrink-0 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M5.3 7.3a1 1 0 011.4 0L10 10.6l3.3-3.3a1 1 0 111.4 1.4l-4 4a1 1 0 01-1.4 0l-4-4a1 1 0 010-1.4z" clipRule="evenodd" />
                 </svg>
@@ -418,6 +474,13 @@ function App() {
               )}
             </div>
 
+            <MicButton
+              listening={brandVoice.listening}
+              onClick={brandVoice.start}
+              className="border border-gray-300 rounded-lg min-h-[40px] min-w-[40px]"
+              label="Pick brand by voice"
+            />
+
             <button
               onClick={handleRefreshBrands}
               disabled={refreshingBrands}
@@ -429,11 +492,7 @@ function App() {
 
             <button
               onClick={() => {
-                setShowAutocomplete((s) => {
-                  const next = !s;
-                  if (!next) setSuggestions([]);
-                  return next;
-                });
+                setShowAutocomplete((s) => !s);
               }}
               className={`px-3 py-2 rounded-lg border flex-shrink-0 flex items-center justify-center gap-1.5 min-h-[40px] transition-colors ${
                 showAutocomplete ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700" : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
@@ -469,6 +528,23 @@ function App() {
           </div>
         )}
       </div>
+
+      {/* 🎯 Search result notice */}
+      {query && result.mode !== "exact" && (
+        <div
+          className={`mb-3 px-4 py-2.5 rounded-xl border text-xs sm:text-sm ${
+            result.mode === "none" ? "bg-red-50 border-red-200 text-red-800" : "bg-amber-50 border-amber-200 text-amber-900"
+          }`}
+        >
+          {result.mode === "close" && (
+            <>No exact match for <strong>“{query}”</strong>{brandFilter && <> in <strong>{brandFilter}</strong></>}. Showing the closest matches.</>
+          )}
+          {result.mode === "other-brands" && (
+            <>Nothing close to <strong>“{query}”</strong> in <strong>{brandFilter}</strong>. Showing matches from other brands.</>
+          )}
+          {result.mode === "none" && <>Nothing found for <strong>“{query}”</strong>.</>}
+        </div>
+      )}
 
       {/* 📋 Products Data Table */}
       <div className="overflow-x-auto bg-white shadow-xs rounded-xl border border-gray-200 mb-6">
@@ -555,7 +631,9 @@ function App() {
                   colSpan={fields.length + 1 || 1}
                   className="p-8 text-center text-gray-500 text-xs sm:text-sm"
                 >
-                  No products found matching your search.
+                  {allItems.length === 0 && loadingItems
+                    ? "Loading price list…"
+                    : "No products found matching your search."}
                 </td>
               </tr>
             )}
@@ -838,6 +916,26 @@ function App() {
       )}
 
     </div>
+  );
+}
+
+// 🎤 Mic button (turns red and pulses while listening)
+function MicButton({ listening, onClick, className = "", label }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={listening ? "Stop listening" : label}
+      className={`flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${
+        listening ? "bg-red-600 text-white animate-pulse" : "bg-white text-gray-600 hover:bg-gray-100 hover:text-blue-600"
+      } ${className}`}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <rect x="9" y="3" width="6" height="11" rx="3" />
+        <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+      </svg>
+    </button>
   );
 }
 
