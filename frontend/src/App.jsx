@@ -27,8 +27,6 @@ function App() {
   const [limit] = useState(20); // Items per page
   const [searchTerm, setSearchTerm] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
-  const [suggestionsHidden, setSuggestionsHidden] = useState(false);
-  const [showAutocomplete, setShowAutocomplete] = useState(true);
   const [refreshingBrands, setRefreshingBrands] = useState(false);
   const [deletingBrand, setDeletingBrand] = useState(null);
 
@@ -220,9 +218,6 @@ function App() {
     (f) => f !== "_id" && f !== "__v"
   );
 
-  const suggestions =
-    showAutocomplete && !suggestionsHidden && query && result.mode !== "all" ? result.items.slice(0, 8) : [];
-
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
@@ -230,7 +225,7 @@ function App() {
 
   // 🎤 Voice search: model / size
   const modelVoice = useSpeech({
-    onResult: (alternatives, isFinal) => {
+    onResult: (alternatives) => {
       // Clean up each heard phrase ("three point seven five dash 18" -> "3.75-18"),
       // pull out a brand name if one was said, and keep the phrase that matches best.
       // No brand said ("2.75 rib") = search all brands; "mrf 2.75 rib" = MRF only.
@@ -248,7 +243,6 @@ function App() {
       if (!best) return;
       if (best.brand !== brandFilter) setBrandFilter(best.brand);
       setSearchTerm(best.rest);
-      setSuggestionsHidden(isFinal);
     },
     onError: (code) => setToastMessage(speechErrorMessage(code)),
   });
@@ -315,12 +309,6 @@ function App() {
     });
   };
 
-  const handleSuggestionClick = (tyre) => {
-    setSearchTerm(typeof tyre === "string" ? tyre : tyre.model || "");
-    setPage(1);
-    setSuggestionsHidden(true);
-  };
-
   return (
     <div className="p-4 sm:p-6 bg-gray-50 min-h-screen pb-28 font-sans text-gray-800">
       
@@ -376,7 +364,6 @@ function App() {
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
-                setSuggestionsHidden(false);
               }}
               aria-label="Search by model"
             />
@@ -398,32 +385,6 @@ function App() {
               </button>
             )}
 
-            {/* Suggestions Autocomplete */}
-            {showAutocomplete && suggestions.length > 0 && (
-              <ul className="absolute bg-white border border-gray-200 w-full mt-1 rounded-lg shadow-xl z-30 max-h-80 overflow-y-auto divide-y divide-gray-100">
-                {suggestions.map((tyre) => (
-                  <li
-                    key={tyre._id}
-                    className="p-2.5 hover:bg-blue-50 cursor-pointer text-xs sm:text-sm flex justify-between items-center transition-colors"
-                    onClick={() => handleSuggestionClick(tyre)}
-                  >
-                    <div>
-                      <span className="font-semibold text-gray-900">{tyre.model}</span>
-                      {tyre.brand && (
-                        <span className="ml-2 text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">
-                          {tyre.brand}
-                        </span>
-                      )}
-                    </div>
-                    {(tyre.dp || tyre.mrp) && (
-                      <span className="text-xs font-bold text-blue-600">
-                        ₹{(tyre.dp || tyre.mrp).toLocaleString("en-IN")}
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
 
           {/* Brand Selector + Control Buttons */}
@@ -500,22 +461,6 @@ function App() {
               {refreshingBrands ? "🔄..." : "🔄 Refresh"}
             </button>
 
-            <button
-              onClick={() => {
-                setShowAutocomplete((s) => !s);
-              }}
-              className={`px-3 py-2 rounded-lg border flex-shrink-0 flex items-center justify-center gap-1.5 min-h-[40px] transition-colors ${
-                showAutocomplete ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700" : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-              }`}
-              title={showAutocomplete ? "Hide suggestions" : "Show suggestions"}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M10 3C5 3 1.1 6.1 0 10c1.1 3.9 5 7 10 7s8.9-3.1 10-7c-1.1-3.9-5-7-10-7zM10 14a4 4 0 100-8 4 4 0 000 8z" />
-              </svg>
-              <span className="hidden sm:inline text-xs sm:text-sm">
-                {showAutocomplete ? "Suggestions On" : "Suggestions Off"}
-              </span>
-            </button>
           </div>
 
         </div>
