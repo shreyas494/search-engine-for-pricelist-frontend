@@ -106,9 +106,23 @@ const WORDS = {
   100: "shambhar shambar sau",
 };
 
-// Halves: "adich" = 2.50, "dedh" = 1.50, "saade teen" = 3.50
+// Halves: "adich" = 2.50, "dedh" = 1.50
 export const HALF_VALUES = { adich: "2.50", adhich: "2.50", dhai: "2.50", dedh: "1.50", didh: "1.50" };
-export const PLUS_HALF = new Set(["saade", "sade", "sadhe", "saadhe"]);
+
+// Fraction words said before a number (keys are spellingKey form):
+// "saade teen" = 3.50, "sava teen" = 3.25, "paune teen" = 2.75
+const FRACTION_WORDS = {
+  sade: 0.5, sadhe: 0.5,
+  sava: 0.25, sav: 0.25,
+  paune: -0.25, pavne: -0.25, pone: -0.25, paone: -0.25,
+};
+
+// Returns e.g. "3.25" for ("sava", "3"), or undefined if the word isn't a fraction word.
+export function withFraction(word, number) {
+  const f = FRACTION_WORDS[spellingKey(word)];
+  if (f === undefined || number === undefined || !/^\d+$/.test(String(number))) return undefined;
+  return (+number + f).toFixed(2);
+}
 
 // English words that look like the above but should stay words
 const KEEP_AS_WORD = new Set(["car", "set", "so", "do", "to"]);

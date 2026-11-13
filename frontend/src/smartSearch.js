@@ -2,7 +2,7 @@
 // Fast in-browser search that tolerates spoken / misspelled input.
 // "3.00-18 ezeeride", "3 18 easy ride", "three point zero zero eighteen ezee ride"
 // and Marathi "teen shambhar athra" all find "3.00-18 EZEERIDE N6 TT SET".
-import { HALF_VALUES, PLUS_HALF, indianNumber, spellingKey } from "./indianNumbers";
+import { HALF_VALUES, indianNumber, spellingKey, withFraction } from "./indianNumbers";
 
 const SKIP_FIELDS = new Set(["_id", "__v", "brand", "dp", "cp", "mrp", "dealerPrice", "createdAt", "updatedAt"]);
 
@@ -61,14 +61,16 @@ export function normalizeQuery(text, { spoken: fromSpeech = false } = {}) {
       spoken = +n;
     } else {
       flush();
-      // Marathi / Hindi: "saade teen" = 3.50, "adich" = 2.50, "panchattar" = 75
+      // Marathi / Hindi: "saade teen" = 3.50, "sava teen" = 3.25, "paune teen" = 2.75,
+      // "adich" = 2.50, "panchattar" = 75
       const next = words[i + 1];
       const half = HALF_VALUES[spellingKey(w)];
       const nextNum = next && (NUMBER_WORDS[next] ?? indianNumber(next) ?? (/^\d+$/.test(next) ? next : undefined));
+      const fraction = withFraction(w, nextNum);
       if (!fromSpeech) {
         out.push(SYMBOL_WORDS[w] ?? w);
-      } else if (PLUS_HALF.has(w) && nextNum !== undefined) {
-        out.push(`${nextNum}.50`);
+      } else if (fraction !== undefined) {
+        out.push(fraction);
         i++;
       } else if (half) {
         out.push(half);
@@ -92,6 +94,13 @@ export function normalizeQuery(text, { spoken: fromSpeech = false } = {}) {
     .replace(/\b(\d) (\d{2}) (\d{2})\b/g, "$1.$2-$3") // "3 75 18" -> "3.75-18"
     .replace(/\b(\d\.\d{1,2}) (\d{1,2})\b/g, "$1-$2") // "3.75 18" -> "3.75-18", "4.00 8" -> "4.00-8"
     .replace(/\b(\d{2,3})[ /](\d{2,3}) (\d{2})\b/g, "$1/$2-$3") // "90 90 17" -> "90/90-17"
+    // Tractor sizes: "12 4 28" -> 12.4-28, "16 9 30" -> 16.9-30
+    .replace(/(^|\s)(\d{1,2}) (\d) (\d{2})(?=\s|$)/g, "$1$2.$3-$4")
+    // Two numbers left: "2 75" -> 2.75 (25/50/75 are decimals), "3 10" -> 3.00-10, "4 8" -> 4.00-8
+    // (not right after another number, which would be part of a longer size)
+    .replace(/(^|\s)(\d) (\d{1,2})(?=\s|$)/g, (m, pre, a, b, offset, str) =>
+      /\d\s*$/.test(str.slice(0, offset)) ? m : `${pre}${a}.${["25", "50", "75"].includes(b) ? b : `00-${b}`}`
+    )
     .trim();
 }
 
@@ -166,7 +175,8 @@ function longestCommonRun(a, b) {
 function digitScore(q, entry) {
   if (entry.modelDigits.includes(q.digits)) return 1;
   if (entry.fieldDigits.some((d) => d.includes(q.digits))) return 0.95;
-  if (q.digitsNoZeros && entry.modelDigitsNoZeros.includes(q.digitsNoZeros)) return 0.85; // "3 18" vs "3.00-18"
+  // "3 18" vs "3.00-18": only when no zeros were said, so 100/80 never matches 110/80
+  if (!q.digits.includes("0") && q.digitsNoZeros && entry.modelDigitsNoZeros.includes(q.digitsNoZeros)) return 0.85;
   // Partly matching size (e.g. 3.00-17 for 3.00-18): useful as a "close" result
   return (0.6 * longestCommonRun(q.digits, entry.modelDigits)) / q.digits.length;
 }
