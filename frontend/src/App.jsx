@@ -1,7 +1,6 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { EXACT_SCORE, indexItem, matchBrand, normalizeQuery, searchItems, splitBrand } from "./smartSearch";
 import { speechErrorMessage, useSpeech } from "./useSpeech";
-import ChatBot from "./ChatBot";
 
 const CACHE_KEY = "pricelist_cache_v1";
 
@@ -878,9 +877,6 @@ function App() {
           </div>
         </div>
       )}
-
-      {/* 💬 Price-list chatbot */}
-      <ChatBot apiUrl={API_URL} />
 
     </div>
   );
